@@ -1,0 +1,188 @@
+.app {
+    font-family: Arial, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.form-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.form-field {
+    margin-bottom: 15px;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-field input {
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
+}
+
+.button {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.button:hover {
+    background-color: #45a049;
+}
+
+/* Dashboard styles */
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.dashboard-header {
+    background-color: #58a3ed;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dashboard-nav {
+    padding: 10px;
+}
+
+.dashboard-nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+}
+
+.dashboard-nav li {
+    margin: 15px;
+    cursor: pointer;
+}
+
+.dashboard-main {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+}
+
+.users-section,
+.data-section {
+    flex: 1;
+    margin: 0 10px;
+}
+
+.users-section ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.users-section li {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+/* Login styles */
+.form-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.form-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.error-message {
+    color: #d32f2f;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.form-field {
+    margin-bottom: 15px;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-field input {
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.button {
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.button:hover {
+    background-color: #45a049;
+}
+
+.form-container p {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.form-container a {
+    color: #4CAF50;
+    text-decoration: none;
+}
+
+.form-container a:hover {
+    text-decoration: underline;
+}
+
+/* Theatre form */
+.error-message {
+    color: #d32f2f;
+    background-color: #fde8e8;
+    border: 1px solid #fbd7d7;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+  }
+  
+  .success-message {
+    color: #2e7d32;
+    background-color: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+  }
