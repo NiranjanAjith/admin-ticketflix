@@ -1,0 +1,234 @@
+import React, { useState, useEffect } from 'react';
+import { firestore } from '../firebase';
+import {
+  TextField,
+  Button,
+  Typography,
+  Container,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+
+
+const useStyles = makeStyles((theme) => ({
+  container: {
+    marginTop: theme.spacing(4),
+  },
+  table: {
+    minWidth: 650,
+  },
+  formControl: {
+    margin: theme.spacing(1),
+    minWidth: 120,
+    width: '100%',
+  },
+}));
+
+function ManageMovies() {
+  const classes = useStyles();
+  const [movies, setMovies] = useState([]);
+  const [editMovie, setEditMovie] = useState(null);
+  const [deleteMovie, setDeleteMovie] = useState(null);
+  const [theatres, setTheatres] = useState([]);
+
+  useEffect(() => {
+    const fetchMovies = async () => {
+      const snapshot = await firestore.collection('movies').get();
+      setMovies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    };
+    const fetchTheatres = async () => {
+      const snapshot = await firestore.collection('theatres').get();
+      setTheatres(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    };
+    fetchMovies();
+    fetchTheatres();
+  }, []);
+
+  const handleEdit = (movie) => {
+    setEditMovie({
+      ...movie,
+      releaseDate: movie.releaseDate.toDate().toISOString().split('T')[0],
+      showings: movie.showings || [{ theatreId: '', showTime: '' }],
+    });
+  };
+
+  const handleDelete = (movie) => {
+    setDeleteMovie(movie);
+  };
+
+  const confirmEdit = async () => {
+    try {
+      await firestore.collection('movies').doc(editMovie.id).update({
+        ...editMovie,
+        releaseDate: new Date(editMovie.releaseDate),
+      });
+      setMovies(movies.map(m => m.id === editMovie.id ? {
+        ...editMovie,
+        releaseDate: new Date(editMovie.releaseDate),
+      } : m));
+      setEditMovie(null);
+    } catch (error) {
+      console.error("Error updating movie:", error);
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await firestore.collection('movies').doc(deleteMovie.id).delete();
+      setMovies(movies.filter(m => m.id !== deleteMovie.id));
+      setDeleteMovie(null);
+    } catch (error) {
+      console.error("Error deleting movie:", error);
+    }
+  };
+
+  return (
+    <Container className={classes.container}>
+      <Typography variant="h4" gutterBottom>
+        Manage Movies
+      </Typography>
+      <TableContainer component={Paper}>
+        <Table className={classes.table}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Title</TableCell>
+              <TableCell>Director</TableCell>
+              <TableCell>Release Date</TableCell>
+              <TableCell>Genre</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {movies.map((movie) => (
+              <TableRow key={movie.id}>
+                <TableCell>{movie.title}</TableCell>
+                <TableCell>{movie.director}</TableCell>
+                <TableCell>{movie.releaseDate.toDate().toLocaleDateString()}</TableCell>
+                <TableCell>{movie.genre}</TableCell>
+                <TableCell>
+                  <Button onClick={() => handleEdit(movie)}>Edit</Button>
+                  <Button onClick={() => handleDelete(movie)}>Delete</Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {editMovie && (
+        <Dialog open={!!editMovie} onClose={() => setEditMovie(null)}>
+          <DialogTitle>Edit Movie</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Title"
+              type="text"
+              fullWidth
+              value={editMovie.title || ''}
+              onChange={(e) => setEditMovie({...editMovie, title: e.target.value})}
+            />
+            <TextField
+              margin="dense"
+              label="Director"
+              type="text"
+              fullWidth
+              value={editMovie.director || ''}
+              onChange={(e) => setEditMovie({...editMovie, director: e.target.value})}
+            />
+            <TextField
+              margin="dense"
+              label="Release Date"
+              type="date"
+              fullWidth
+              InputLabelProps={{
+                shrink: true,
+              }}
+              value={editMovie.releaseDate || ''}
+              onChange={(e) => setEditMovie({...editMovie, releaseDate: e.target.value})}
+            />
+            <FormControl className={classes.formControl}>
+              <InputLabel id="genre-label">Genre</InputLabel>
+              <Select
+                labelId="genre-label"
+                value={editMovie.genre || ''}
+                onChange={(e) => setEditMovie({...editMovie, genre: e.target.value})}
+              >
+                <MenuItem value="Action">Action</MenuItem>
+                <MenuItem value="Comedy">Comedy</MenuItem>
+                <MenuItem value="Drama">Drama</MenuItem>
+                <MenuItem value="Sci-Fi">Sci-Fi</MenuItem>
+                <MenuItem value="Horror">Horror</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl className={classes.formControl}>
+              <InputLabel id="theatre-label">Theatre</InputLabel>
+              <Select
+                labelId="theatre-label"
+                value={editMovie.showings[0].theatreId || ''}
+                onChange={(e) => setEditMovie({
+                  ...editMovie,
+                  showings: [{...editMovie.showings[0], theatreId: e.target.value}]
+                })}
+              >
+                {theatres.map((theatre) => (
+                  <MenuItem key={theatre.id} value={theatre.id}>{theatre.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              margin="dense"
+              label="Show Time"
+              type="time"
+              fullWidth
+              InputLabelProps={{
+                shrink: true,
+              }}
+              value={editMovie.showings[0].showTime || ''}
+              onChange={(e) => setEditMovie({
+                ...editMovie,
+                showings: [{...editMovie.showings[0], showTime: e.target.value}]
+              })}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditMovie(null)}>Cancel</Button>
+            <Button onClick={confirmEdit} color="primary">Save</Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {deleteMovie && (
+        <Dialog open={!!deleteMovie} onClose={() => setDeleteMovie(null)}>
+          <DialogTitle>Delete Movie</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete "{deleteMovie.title}"?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteMovie(null)}>Cancel</Button>
+            <Button onClick={confirmDelete} color="secondary">Delete</Button>
+          </DialogActions>
+        </Dialog>
+      )}
+    </Container>
+  );
+}
+
+export default ManageMovies;

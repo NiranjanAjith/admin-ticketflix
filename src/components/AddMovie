@@ -1,0 +1,239 @@
+import React, { useState, useEffect } from 'react';
+import { firestore } from '../firebase';
+import { TextField, Button, Typography, Container, makeStyles, Select, MenuItem, FormControl, InputLabel, Snackbar } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
+
+const useStyles = makeStyles((theme) => ({
+  paper: {
+    marginTop: theme.spacing(8),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  form: {
+    width: '100%',
+    marginTop: theme.spacing(1),
+  },
+  submit: {
+    margin: theme.spacing(3, 0, 2),
+  },
+  formControl: {
+    margin: theme.spacing(1),
+    minWidth: 120,
+    width: '100%',
+  },
+}));
+
+function AddMovie() {
+  const classes = useStyles();
+  const [title, setTitle] = useState('');
+  const [director, setDirector] = useState('');
+  const [cast, setCast] = useState('');
+  const [releaseDate, setReleaseDate] = useState('');
+  const [genre, setGenre] = useState('');
+  const [theatre, setTheatre] = useState('');
+  const [showTime, setShowTime] = useState('');
+  const [theatres, setTheatres] = useState([]);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchTheatres = async () => {
+      const snapshot = await firestore.collection('theatres').get();
+      setTheatres(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    };
+    fetchTheatres();
+  }, []);
+
+  const validateForm = () => {
+    if (!title.trim()) {
+      setError('Movie title is required');
+      return false;
+    }
+    if (!director.trim()) {
+      setError('Director name is required');
+      return false;
+    }
+    if (!cast.trim()) {
+      setError('Cast members are required');
+      return false;
+    }
+    if (!releaseDate) {
+      setError('Release date is required');
+      return false;
+    }
+    if (!genre) {
+      setError('Genre is required');
+      return false;
+    }
+    if (!theatre) {
+      setError('Theatre selection is required');
+      return false;
+    }
+    if (!showTime) {
+      setError('Show time is required');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess(false);
+
+    if (!validateForm()) return;
+
+    try {
+      await firestore.collection('movies').add({
+        title,
+        director,
+        cast: cast.split(',').map(item => item.trim()),
+        releaseDate: new Date(releaseDate),
+        genre,
+        showings: [{
+          theatreId: theatre,
+          showTime: showTime
+        }]
+      });
+      setSuccess(true);
+      // Reset form
+      setTitle('');
+      setDirector('');
+      setCast('');
+      setReleaseDate('');
+      setGenre('');
+      setTheatre('');
+      setShowTime('');
+    } catch (error) {
+      setError('Error adding movie: ' + error.message);
+    }
+  };
+
+  return (
+    <Container component="main" maxWidth="xs">
+      <div className={classes.paper}>
+        <Typography component="h1" variant="h5">
+          Add Movie
+        </Typography>
+        <form className={classes.form} onSubmit={handleSubmit}>
+          <TextField
+            variant="outlined"
+            margin="normal"
+            required
+            fullWidth
+            id="title"
+            label="Movie Title"
+            name="title"
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <TextField
+            variant="outlined"
+            margin="normal"
+            required
+            fullWidth
+            id="director"
+            label="Director"
+            name="director"
+            value={director}
+            onChange={(e) => setDirector(e.target.value)}
+          />
+          <TextField
+            variant="outlined"
+            margin="normal"
+            required
+            fullWidth
+            id="cast"
+            label="Cast Members (comma-separated)"
+            name="cast"
+            value={cast}
+            onChange={(e) => setCast(e.target.value)}
+          />
+          <TextField
+            variant="outlined"
+            margin="normal"
+            required
+            fullWidth
+            id="releaseDate"
+            label="Release Date"
+            name="releaseDate"
+            type="date"
+            InputLabelProps={{
+              shrink: true,
+            }}
+            value={releaseDate}
+            onChange={(e) => setReleaseDate(e.target.value)}
+          />
+          <FormControl variant="outlined" className={classes.formControl}>
+            <InputLabel id="genre-label">Genre</InputLabel>
+            <Select
+              labelId="genre-label"
+              id="genre"
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              label="Genre"
+            >
+              <MenuItem value="Action">Action</MenuItem>
+              <MenuItem value="Comedy">Comedy</MenuItem>
+              <MenuItem value="Drama">Drama</MenuItem>
+              <MenuItem value="Sci-Fi">Sci-Fi</MenuItem>
+              <MenuItem value="Horror">Horror</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl variant="outlined" className={classes.formControl}>
+            <InputLabel id="theatre-label">Theatre</InputLabel>
+            <Select
+              labelId="theatre-label"
+              id="theatre"
+              value={theatre}
+              onChange={(e) => setTheatre(e.target.value)}
+              label="Theatre"
+            >
+              {theatres.map((t) => (
+                <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            variant="outlined"
+            margin="normal"
+            required
+            fullWidth
+            id="showTime"
+            label="Show Time"
+            name="showTime"
+            type="time"
+            InputLabelProps={{
+              shrink: true,
+            }}
+            value={showTime}
+            onChange={(e) => setShowTime(e.target.value)}
+          />
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            color="primary"
+            className={classes.submit}
+          >
+            Add Movie
+          </Button>
+        </form>
+      </div>
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
+        <Alert onClose={() => setError('')} severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
+      <Snackbar open={success} autoHideDuration={6000} onClose={() => setSuccess(false)}>
+        <Alert onClose={() => setSuccess(false)} severity="success">
+          Movie added successfully!
+        </Alert>
+      </Snackbar>
+    </Container>
+  );
+}
+
+export default AddMovie;
