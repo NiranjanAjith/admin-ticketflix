@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { firestore } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import Header from '../components/header';
+import Header from '../components/Header';
+import './Dashboard.css';
 
 const Dashboard = () => {
   const [users, setUsers] = useState([]);
@@ -20,12 +21,11 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-
     fetchUsers();
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="loading">Loading...</div>;
   }
 
   return (
@@ -46,6 +46,10 @@ const Dashboard = () => {
           <p>Placeholder for data display</p>
         </section>
       </main>
+      <footer className="footer">
+  <p>&copy; 2024 TicketFlix Admin. All rights reserved.<br />
+  Powered by Your Company Name</p>
+</footer>
     </div>
   );
 };

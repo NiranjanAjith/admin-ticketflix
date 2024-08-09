@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { firestore } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import Header from '../components/header';
+import Header from '../components/Header';
 
 const AddTheater = () => {
     const [name, setName] = useState('');

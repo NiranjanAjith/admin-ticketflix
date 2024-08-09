@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { AuthContext } from '../context/AuthContext';
+import './Login.css';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -24,37 +25,56 @@ const Login = () => {
   };
 
   if (user) {
-    // If user is already logged in, redirect to home
     navigate('/');
+    return null;
   }
 
   return (
-    <div className="form-container">
-      <h2>Login</h2>
-      {error && <p className="error-message">{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div className="login-page">
+      <header>
+        <div className="header-content">
+          <div className="logo">TicketFlix Admin</div>
         </div>
-        <div className="form-field">
-          <label htmlFor="password">Password:</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+      </header>
+
+      <main>
+        <div className="login-container">
+          <h2>Welcome Back</h2>
+          <p>Please login to your account</p>
+          {error && <div className="error-message">{error}</div>}
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <label htmlFor="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </div>
+            <div className="input-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+            <button type="submit" className="login-button">Login</button>
+          </form>
         </div>
-        <button type="submit" className="button">Login</button>
-      </form>
+      </main>
+
+      <footer>
+        <div className="footer-content">
+          <p>&copy; 2024 TicketFlix. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 };
