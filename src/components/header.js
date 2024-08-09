@@ -22,6 +22,8 @@ const Header = () => {
                 <ul>
                     <li><Link to="/" className='button'>Dashboard</Link></li>
                     <li><Link to="/add-theatre" className='button'>+Theater</Link></li>
+                    <li><Link to="/add-movie" className='button'>+Movie</Link></li>
+                    <li><Link to="/add-executive" className='button'>+Executive</Link></li>
                     {/* Add more navigation items as needed */}
                     <li><button onClick={handleLogout} className="button">Logout</button></li>
                 </ul>

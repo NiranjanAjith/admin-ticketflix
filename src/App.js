@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import { auth } from './firebase';
 import AddTheatre from './pages/AddTheatre';
+import AddMovie from './pages/AddMovie';
+import AddExecutive from './pages/AddExecutive';
 
 const PrivateRoute = ({ children }) => {
   return auth.currentUser ? children : <Navigate to="/login" />;
@@ -30,6 +32,22 @@ function App() {
             element={
               <PrivateRoute>
                 <AddTheatre />
+              </PrivateRoute>
+            }
+          />
+          <Route 
+            path='/add-movie' 
+            element={
+              <PrivateRoute>
+                <AddMovie />
+              </PrivateRoute>
+            }
+          />
+          <Route 
+            path='/add-executive' 
+            element={
+              <PrivateRoute>
+                <AddExecutive />
               </PrivateRoute>
             }
           />
