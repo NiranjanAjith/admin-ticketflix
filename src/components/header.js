@@ -17,7 +17,7 @@ const Header = () => {
 
     return (
         <header className="dashboard-header">
-            <h1>TicketFlix Admin</h1>
+            <h1>TicketFlix</h1>
             <nav className="dashboard-nav">
                 <ul>
                     <li><Link to="/" className='button'><FaHome /> Dashboard</Link></li>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { firestore } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const AddExecutive = () => {
     const [executive, setExecutive] = useState({
@@ -122,6 +123,7 @@ const AddExecutive = () => {
                     <button type="submit">Add Executive</button>
                 </form>
             </div>
+            <Footer/>
         </div>
     );
 };

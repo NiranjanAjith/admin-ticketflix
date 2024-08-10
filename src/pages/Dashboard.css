@@ -238,3 +238,122 @@ li:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-color);
 }
+
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+.background-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background-image: url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80'); /* Replace with your image path */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.add-movie-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+.add-movie-container {
+  max-width: 1200px;
+  margin: 20px auto;
+  margin-top:10%;
+  margin-bottom:10% ;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.split-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.form-left, .form-right {
+  flex: 1;
+  min-width: 300px;
+}
+
+.form-footer {
+  width: 100%;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.split-form div {
+  margin-bottom: 15px;
+}
+
+.split-form label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.split-form input[type="text"],
+.split-form input[type="date"],
+.split-form input[type="number"],
+.split-form input[type="url"],
+.split-form textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.split-form button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.split-form button:hover {
+  background-color: #0056b3;
+}
+
+@media (max-width: 768px) {
+  .split-form {
+      flex-direction: column;
+  }
+}
+
+.add-executive-container {
+  margin: 20px auto;
+  margin-top:10%;
+  margin-bottom:10% ;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.form-container {
+  margin: 20px auto;
+  margin-top:10%;
+  margin-bottom:10% ;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
