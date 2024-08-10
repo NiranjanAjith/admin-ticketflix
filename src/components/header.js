@@ -25,20 +25,21 @@ const Header = () => {
             <nav className="dashboard-nav">
                 <ul>
                     <li><Link to="/" className='button'><FaHome /> Dashboard</Link></li>
-                    {place === '/theatre' ?(
-                        <li><Link to="/add-theatre" className='button'><FaPlus /> Theater</Link></li>
-                    ):(
-                        <li><Link to="/theatre" className='button'><FaTheaterMasks />Theater</Link></li>
-                    )
-                    }
-                    {place === '/movie' ? (
-                        <li><Link to="/add-movie" className='button'><FaPlus /> Movie</Link></li>
+                    {place === '/theatre' ? (
+                        <li><Link to="/add-theatre" className='button'><FaPlus /> Add Theater</Link></li>
                     ) : (
-                        <li><Link to="/movie" className='button'><FaFilm /> Movie</Link></li>
+                        <li><Link to="/theatre" className='button'><FaTheaterMasks /> Theaters</Link></li>
                     )}
-                    {place === '/executive'?
-                    (<li><Link to="/add-executive" className='button'><FaPlus/> Executive</Link></li>
-                    ):(<li><Link><FaUserTie />Executive</Link></li>)}
+                    {place === '/movie' ? (
+                        <li><Link to="/add-movie" className='button'><FaPlus /> Add Movie</Link></li>
+                    ) : (
+                        <li><Link to="/movie" className='button'><FaFilm /> Movies</Link></li>
+                    )}
+                    {place === '/executive' ? (
+                        <li><Link to="/add-executive" className='button'><FaPlus /> Add Executive</Link></li>
+                    ) : (
+                        <li><Link to="/executive" className='button'><FaUserTie /> Executives</Link></li>
+                    )}
                     <li><button onClick={handleLogout} className="button"><FaSignOutAlt /> Logout</button></li>
                 </ul>
             </nav>
