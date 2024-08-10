@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { firestore, storage } from '../firebase';
 import Header from '../components/Header';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -7,31 +7,34 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 const AddMovie = () => {
     const [movie, setMovie] = useState({
         title: '',
-        releaseDate: '',
-        genre: '',
-        language: '',
-        duration: '',
-        cast: '',
-        director: '',
         description: '',
-        rating: '',
-        trailer: '',
-        showtimes: {},
-        showEndDate: {}
+        duration: '',
+        genre: [],
+        rating: 0,
+        releaseDate: '',
+        showtimes: {
+            firstShow: '',
+            Matinee: ''
+        }
     });
     const [poster, setPoster] = useState(null);
     const [message, setMessage] = useState({ type: '', content: '' });
-    const [showTimeKey, setShowTimeKey] = useState('');
-    const [showTimeValue, setShowTimeValue] = useState('');
-    const [showEndDateKey, setShowEndDateKey] = useState('');
-    const [showEndDateValue, setShowEndDateValue] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'genre' || name === 'cast') {
+        if (name === 'genre') {
             setMovie(prevState => ({
                 ...prevState,
                 [name]: value.split(',').map(item => item.trim())
+            }));
+        } else if (name.startsWith('showtimes.')) {
+            const [, key] = name.split('.');
+            setMovie(prevState => ({
+                ...prevState,
+                showtimes: {
+                    ...prevState.showtimes,
+                    [key]: value
+                }
             }));
         } else {
             setMovie(prevState => ({
@@ -39,56 +42,6 @@ const AddMovie = () => {
                 [name]: value
             }));
         }
-    };
-
-    const handlePosterChange = (e) => {
-        if (e.target.files[0]) {
-            setPoster(e.target.files[0]);
-        }
-    };
-
-    const addShowTime = () => {
-        if (showTimeKey && showTimeValue) {
-            setMovie(prevState => ({
-                ...prevState,
-                showtimes: {
-                    ...prevState.showtimes,
-                    [showTimeKey]: showTimeValue
-                }
-            }));
-            setShowTimeKey('');
-            setShowTimeValue('');
-        }
-    };
-
-    const addShowEndDate = () => {
-        if (showEndDateKey && showEndDateValue) {
-            setMovie(prevState => ({
-                ...prevState,
-                showEndDate: {
-                    ...prevState.showEndDate,
-                    [showEndDateKey]: showEndDateValue
-                }
-            }));
-            setShowEndDateKey('');
-            setShowEndDateValue('');
-        }
-    };
-
-    const handleShowtimeChange = (index, value) => {
-        const newShowtimes = [...movie.showtimes];
-        newShowtimes[index] = value;
-        setMovie(prevState => ({
-            ...prevState,
-            showtimes: newShowtimes
-        }));
-    };
-
-    const addShowtime = () => {
-        setMovie(prevState => ({
-            ...prevState,
-            showtimes: [...prevState.showtimes, '']
-        }));
     };
 
     const handlePosterChange = (e) => {
@@ -110,9 +63,13 @@ const AddMovie = () => {
 
             const movieData = {
                 ...movie,
-                poster: posterUrl,
-                duration: parseInt(movie.duration),
-                rating: parseFloat(movie.rating)
+                posterUrl,
+                rating: parseFloat(movie.rating),
+                releaseDate: Timestamp.fromDate(new Date(movie.releaseDate)),
+                showtimes: {
+                    firstShow: Timestamp.fromDate(new Date(movie.showtimes.firstShow)),
+                    Matinee: Timestamp.fromDate(new Date(movie.showtimes.Matinee))
+                }
             };
 
             await addDoc(collection(firestore, 'movies'), movieData);
@@ -120,17 +77,15 @@ const AddMovie = () => {
             setMessage({ type: 'success', content: 'Movie added successfully!' });
             setMovie({
                 title: '',
-                releaseDate: '',
-                genre: '',
-                language: '',
-                duration: '',
-                cast: '',
-                director: '',
                 description: '',
-                rating: '',
-                trailer: '',
-                showtimes: {},
-                showEndDate: {}
+                duration: '',
+                genre: [],
+                rating: 0,
+                releaseDate: '',
+                showtimes: {
+                    firstShow: '',
+                    Matinee: ''
+                }
             });
             setPoster(null);
             document.getElementById('poster').value = '';
@@ -141,7 +96,7 @@ const AddMovie = () => {
     };
 
     return (
-        <div className="add-movie-page">
+        <div>
             <Header />
             <div className="add-movie-container">
                 <h2>Add New Movie</h2>
@@ -156,81 +111,32 @@ const AddMovie = () => {
                         <input type="text" id="title" name="title" value={movie.title} onChange={handleChange} required />
                     </div>
                     <div>
-                        <label htmlFor="releaseDate">Release Date:</label>
-                        <input type="date" id="releaseDate" name="releaseDate" value={movie.releaseDate} onChange={handleChange} required />
-                    </div>
-                    <div>
-                        <label htmlFor="genre">Genre (comma-separated):</label>
-                        <input type="text" id="genre" name="genre" value={movie.genre} onChange={handleChange} required />
-                    </div>
-                    <div>
-                        <label htmlFor="language">Language:</label>
-                        <input type="text" id="language" name="language" value={movie.language} onChange={handleChange} required />
-                    </div>
-                    <div>
-                        <label htmlFor="duration">Duration (minutes):</label>
-                        <input type="number" id="duration" name="duration" value={movie.duration} onChange={handleChange} required />
-                    </div>
-                    <div>
-                        <label htmlFor="cast">Cast (comma-separated):</label>
-                        <input type="text" id="cast" name="cast" value={movie.cast} onChange={handleChange} required />
-                    </div>
-                    <div>
-                        <label htmlFor="director">Director:</label>
-                        <input type="text" id="director" name="director" value={movie.director} onChange={handleChange} required />
-                    </div>
-                    <div>
                         <label htmlFor="description">Description:</label>
                         <textarea id="description" name="description" value={movie.description} onChange={handleChange} required></textarea>
                     </div>
                     <div>
+                        <label htmlFor="duration">Duration (HH:MM:SS):</label>
+                        <input type="text" id="duration" name="duration" value={movie.duration} onChange={handleChange} required pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}" />
+                    </div>
+                    <div>
+                        <label htmlFor="genre">Genre (comma-separated):</label>
+                        <input type="text" id="genre" name="genre" value={movie.genre.join(', ')} onChange={handleChange} required />
+                    </div>
+                    <div>
                         <label htmlFor="rating">Rating:</label>
-                        <input type="number" step="0.1" id="rating" name="rating" value={movie.rating} onChange={handleChange} required />
+                        <input type="number" step="0.1" id="rating" name="rating" value={movie.rating} onChange={handleChange} required min="0" max="5" />
                     </div>
                     <div>
-                        <label htmlFor="trailer">Trailer URL:</label>
-                        <input type="url" id="trailer" name="trailer" value={movie.trailer} onChange={handleChange} required />
+                        <label htmlFor="releaseDate">Release Date:</label>
+                        <input type="datetime-local" id="releaseDate" name="releaseDate" value={movie.releaseDate} onChange={handleChange} required />
                     </div>
                     <div>
-                        <h3>Showtimes</h3>
-                        {Object.entries(movie.showtimes).map(([key, value]) => (
-                            <div key={key}>
-                                {key}: {value}
-                            </div>
-                        ))}
-                        <input
-                            type="text"
-                            placeholder="Theater ID"
-                            value={showTimeKey}
-                            onChange={(e) => setShowTimeKey(e.target.value)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Show Time"
-                            value={showTimeValue}
-                            onChange={(e) => setShowTimeValue(e.target.value)}
-                        />
-                        <button type="button" onClick={addShowTime}>Add Showtime</button>
+                        <label htmlFor="showtimes.firstShow">First Show:</label>
+                        <input type="datetime-local" id="showtimes.firstShow" name="showtimes.firstShow" value={movie.showtimes.firstShow} onChange={handleChange} required />
                     </div>
                     <div>
-                        <h3>Show End Dates</h3>
-                        {Object.entries(movie.showEndDate).map(([key, value]) => (
-                            <div key={key}>
-                                {key}: {value}
-                            </div>
-                        ))}
-                        <input
-                            type="text"
-                            placeholder="Theater ID"
-                            value={showEndDateKey}
-                            onChange={(e) => setShowEndDateKey(e.target.value)}
-                        />
-                        <input
-                            type="date"
-                            value={showEndDateValue}
-                            onChange={(e) => setShowEndDateValue(e.target.value)}
-                        />
-                        <button type="button" onClick={addShowEndDate}>Add Show End Date</button>
+                        <label htmlFor="showtimes.Matinee">Matinee:</label>
+                        <input type="datetime-local" id="showtimes.Matinee" name="showtimes.Matinee" value={movie.showtimes.Matinee} onChange={handleChange} required />
                     </div>
                     <div>
                         <label htmlFor="poster">Poster:</label>

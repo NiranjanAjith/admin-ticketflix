@@ -6,7 +6,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import { auth } from './firebase';
 import AddTheatre from './pages/AddTheatre';
-import AddMovie from './pages/AddMovie';
+import Movie from './pages/movie';
+import AddMovie from './pages/AddMovie'
 import AddExecutive from './pages/AddExecutive';
 
 const PrivateRoute = ({ children }) => {
@@ -19,6 +20,7 @@ function App() {
       <div className="app">
         <Routes>
           <Route path="/login" element={<Login />} />
+
           <Route 
             path="/" 
             element={
@@ -27,11 +29,21 @@ function App() {
               </PrivateRoute>
             } 
           />
+          
           <Route 
             path='/add-theatre' 
             element={
               <PrivateRoute>
                 <AddTheatre />
+              </PrivateRoute>
+            }
+          />
+
+          <Route 
+            path='/movie' 
+            element={
+              <PrivateRoute>
+                <Movie />
               </PrivateRoute>
             }
           />
@@ -43,6 +55,7 @@ function App() {
               </PrivateRoute>
             }
           />
+          
           <Route 
             path='/add-executive' 
             element={

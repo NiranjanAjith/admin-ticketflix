@@ -1,0 +1,63 @@
+.movie-list-container {
+    padding: 20px;
+  }
+  
+  .movie-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .movie-table th {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    color: #000;
+  }
+  .movie-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    color: #ddd;
+  }
+  
+  .movie-table th {
+    background-color: #f2f2f2;
+  }
+  
+  .icon-button {
+    background: #ddd;
+    border: none;
+    cursor: pointer;
+    margin-right: 10px;
+    padding: 3.5px;
+  }
+  
+  .edit-form-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .edit-form {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    width: 300px;
+  }
+  
+  .edit-form input,
+  .edit-form textarea {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: space-between;
+  }

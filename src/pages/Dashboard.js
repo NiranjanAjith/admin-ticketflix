@@ -47,9 +47,9 @@ const Dashboard = () => {
         </section>
       </main>
       <footer className="footer">
-  <p>&copy; 2024 TicketFlix Admin. All rights reserved.<br />
-  Powered by Your Company Name</p>
-</footer>
+        <p>&copy; 2024 TicketFlix Admin. All rights reserved.<br />
+          Powered by Your Company Name</p>
+      </footer>
     </div>
   );
 };
