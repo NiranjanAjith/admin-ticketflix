@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { collection, getDocs, updateDoc, doc, addDoc } from 'firebase/firestore';
+import { collection, updateDoc, doc, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 // import { addDoc, Timestamp } from 'firebase/firestore';
 import { firestore, storage } from '../firebase';
@@ -13,15 +13,18 @@ import { jsPDF } from 'jspdf';
 
 
 function QRCodeGenerator() {
-    const [numCoupons, setNumCoupons] = useState(0);
+    const [numCoupons, setNumCoupons] = useState(null);
     const [pdfUrl, setPdfUrl] = useState(null);
+    const [amountPaid, setAmountPaid] = useState('');
+    const [executiveId, setExecutiveId] = useState('');
+    const [tickets, setTickets] = useState([]);
 
     // Function to fetch codes from Firestore
-    const fetchCodesFromFirestore = async () => {
-        const ticketsRef = collection(firestore, 'tickets');
-        const snapshot = await getDocs(ticketsRef);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    };
+    // const fetchCodesFromFirestore = async () => {
+    //     const ticketsRef = collection(firestore, 'tickets');
+    //     const snapshot = await getDocs(ticketsRef);
+    //     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // };
 
     // Function to hash the movie code
     const hashCode = (code) => {
@@ -70,15 +73,16 @@ function QRCodeGenerator() {
     };
 
     // Function to create a new ticket document with error handling
-    const createNewTicket = async () => {
+    const createNewTicket = async (amt, exec) => {
         try {
             const ticketsRef = collection(firestore, 'tickets');
             const newTicket = {
-                'amount-paid': '',
+                'amount-paid': amt,
                 'coupon_code': `FREE${Math.random().toString(36).substring(7).toUpperCase()}`,
                 'show-id': '',
                 'ticket-id': `T${Math.random().toString(36).substring(7).toUpperCase()}`,
-                'user-id': ''
+                'user-id': '',
+                'executiveId': exec
             };
 
             const docRef = await addDoc(ticketsRef, newTicket);
@@ -93,27 +97,44 @@ function QRCodeGenerator() {
 
     // Main function to process coupons
     const processCoupons = async () => {
-        let tickets = await fetchCodesFromFirestore();
         const processedTickets = [];
 
         // Create new tickets if needed
         const newTicketsNeeded = Math.max(0, numCoupons - tickets.length);
+        const newTickets = [];
         for (let i = 0; i < newTicketsNeeded; i++) {
-            const newTicket = await createNewTicket();
-            tickets.push(newTicket);
+            const newTicket = await createNewTicket(amountPaid, executiveId);
+            newTickets.push(newTicket);
         }
+        setTickets(prevTickets => [...prevTickets, ...newTickets]);
 
         // Process all tickets
         for (let i = 0; i < numCoupons; i++) {
-            const ticket = tickets[i];
-            const hashedCode = hashCode(ticket.coupon_code);
-            const qrDataUrl = await generateQRCode(hashedCode);
-            const storageUrl = await saveQRCodeToStorage(qrDataUrl, ticket.id);
-            await updateFirestoreWithQRCodeUrl(ticket.id, storageUrl);
-            processedTickets.push({ ticketId: ticket.id, qrDataUrl });
+            try {
+                const ticket = newTickets[i];
+                const hashedCode = hashCode(ticket.coupon_code);
+                const urlCode = encodeURIComponent(hashedCode + ticket.id); // Encode URL component
+                const ticketURL = `https://www.ticketflix.com/ticket/view/${urlCode}`;
+                const qrDataUrl = await generateQRCode(ticketURL);
+                const storageUrl = await saveQRCodeToStorage(qrDataUrl, ticket.id);
+                await updateFirestoreWithQRCodeUrl(ticket.id, storageUrl);
+                processedTickets.push({ ticketId: ticket.id, qrDataUrl });
+            } catch (error) {
+                console.error(`Error processing ticket ${i}:`, error);
+            }
         }
+        
 
         await generatePDF(processedTickets);
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        if (isNaN(parseFloat(amountPaid)) || !executiveId) {
+            alert('Please provide valid inputs.');
+            return;
+        }
+        await processCoupons();
     };
 
     return (
@@ -126,9 +147,30 @@ function QRCodeGenerator() {
                     onChange={(e) => setNumCoupons(parseInt(e.target.value))}
                     placeholder="Number of coupons"
                 />
-                <button onClick={processCoupons}>Generate QR Codes</button>
+                <br />
+                <label />
+                <input
+                    type="number"
+                    id="amountPaid"
+                    placeholder='Amount Paid'
+                    value={amountPaid}
+                    onChange={(e) => setAmountPaid(e.target.value)}
+                    required
+                />
+                <br />
+                <label />
+                <input
+                    type="text"
+                    id="executiveId"
+                    placeholder='Executive ID'
+                    value={executiveId}
+                    onChange={(e) => setExecutiveId(e.target.value)}
+                    required
+                />
+                <br /><br />
+                <button onClick={handleSubmit}>Generate QR Codes</button>
                 {pdfUrl && (
-                    <a href={pdfUrl} download="qr_codes.pdf">Download QR Codes PDF</a>
+                    <br><a href={pdfUrl} download="qr_codes.pdf">Download QR Codes PDF</a></br>
                 )}
             </div>
             <Footer />
