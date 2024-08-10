@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { firestore } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const AddTheater = () => {
     const [name, setName] = useState('');
@@ -81,6 +82,7 @@ const AddTheater = () => {
                     <button type="submit" className="button">Add Theater</button>
                 </form>
             </div>
+            <Footer/>
         </div>
     );
 };

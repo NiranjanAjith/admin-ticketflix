@@ -3,6 +3,7 @@ import { firestore } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import Header from '../components/Header';
 import './Dashboard.css';
+import Footer from '../components/Footer';
 
 const Dashboard = () => {
   const [users, setUsers] = useState([]);
@@ -46,10 +47,7 @@ const Dashboard = () => {
           <p>Placeholder for data display</p>
         </section>
       </main>
-      <footer className="footer">
-        <p>&copy; 2024 TicketFlix Admin. All rights reserved.<br />
-          Powered by Your Company Name</p>
-      </footer>
+<Footer/>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { firestore, storage } from '../firebase';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const AddMovie = () => {
@@ -44,11 +45,7 @@ const AddMovie = () => {
         }
     };
 
-    const handlePosterChange = (e) => {
-        if (e.target.files[0]) {
-            setPoster(e.target.files[0]);
-        }
-    };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -95,8 +92,9 @@ const AddMovie = () => {
         }
     };
 
+
     return (
-        <div>
+        <div className="add-movie-page">
             <Header />
             <div className="add-movie-container">
                 <h2>Add New Movie</h2>
@@ -111,32 +109,81 @@ const AddMovie = () => {
                         <input type="text" id="title" name="title" value={movie.title} onChange={handleChange} required />
                     </div>
                     <div>
+                        <label htmlFor="releaseDate">Release Date:</label>
+                        <input type="date" id="releaseDate" name="releaseDate" value={movie.releaseDate} onChange={handleChange} required />
+                    </div>
+                    <div>
+                        <label htmlFor="genre">Genre (comma-separated):</label>
+                        <input type="text" id="genre" name="genre" value={movie.genre} onChange={handleChange} required />
+                    </div>
+                    <div>
+                        <label htmlFor="language">Language:</label>
+                        <input type="text" id="language" name="language" value={movie.language} onChange={handleChange} required />
+                    </div>
+                    <div>
+                        <label htmlFor="duration">Duration (minutes):</label>
+                        <input type="number" id="duration" name="duration" value={movie.duration} onChange={handleChange} required />
+                    </div>
+                    <div>
+                        <label htmlFor="cast">Cast (comma-separated):</label>
+                        <input type="text" id="cast" name="cast" value={movie.cast} onChange={handleChange} required />
+                    </div>
+                    <div>
+                        <label htmlFor="director">Director:</label>
+                        <input type="text" id="director" name="director" value={movie.director} onChange={handleChange} required />
+                    </div>
+                    <div>
                         <label htmlFor="description">Description:</label>
                         <textarea id="description" name="description" value={movie.description} onChange={handleChange} required></textarea>
                     </div>
                     <div>
-                        <label htmlFor="duration">Duration (HH:MM:SS):</label>
-                        <input type="text" id="duration" name="duration" value={movie.duration} onChange={handleChange} required pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}" />
-                    </div>
-                    <div>
-                        <label htmlFor="genre">Genre (comma-separated):</label>
-                        <input type="text" id="genre" name="genre" value={movie.genre.join(', ')} onChange={handleChange} required />
-                    </div>
-                    <div>
                         <label htmlFor="rating">Rating:</label>
-                        <input type="number" step="0.1" id="rating" name="rating" value={movie.rating} onChange={handleChange} required min="0" max="5" />
+                        <input type="number" step="0.1" id="rating" name="rating" value={movie.rating} onChange={handleChange} required />
                     </div>
                     <div>
-                        <label htmlFor="releaseDate">Release Date:</label>
-                        <input type="datetime-local" id="releaseDate" name="releaseDate" value={movie.releaseDate} onChange={handleChange} required />
+                        <label htmlFor="trailer">Trailer URL:</label>
+                        <input type="url" id="trailer" name="trailer" value={movie.trailer} onChange={handleChange} required />
                     </div>
                     <div>
-                        <label htmlFor="showtimes.firstShow">First Show:</label>
-                        <input type="datetime-local" id="showtimes.firstShow" name="showtimes.firstShow" value={movie.showtimes.firstShow} onChange={handleChange} required />
+                        <h3>Showtimes</h3>
+                        {Object.entries(movie.showtimes).map(([key, value]) => (
+                            <div key={key}>
+                                {key}: {value}
+                            </div>
+                        ))}
+                        <input
+                            type="text"
+                            placeholder="Theater ID"
+                            value={showTimeKey}
+                            onChange={(e) => setShowTimeKey(e.target.value)}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Show Time"
+                            value={showTimeValue}
+                            onChange={(e) => setShowTimeValue(e.target.value)}
+                        />
+                        <button type="button" onClick={addShowTime}>Add Showtime</button>
                     </div>
                     <div>
-                        <label htmlFor="showtimes.Matinee">Matinee:</label>
-                        <input type="datetime-local" id="showtimes.Matinee" name="showtimes.Matinee" value={movie.showtimes.Matinee} onChange={handleChange} required />
+                        <h3>Show End Dates</h3>
+                        {Object.entries(movie.showEndDate).map(([key, value]) => (
+                            <div key={key}>
+                                {key}: {value}
+                            </div>
+                        ))}
+                        <input
+                            type="text"
+                            placeholder="Theater ID"
+                            value={showEndDateKey}
+                            onChange={(e) => setShowEndDateKey(e.target.value)}
+                        />
+                        <input
+                            type="date"
+                            value={showEndDateValue}
+                            onChange={(e) => setShowEndDateValue(e.target.value)}
+                        />
+                        <button type="button" onClick={addShowEndDate}>Add Show End Date</button>
                     </div>
                     <div>
                         <label htmlFor="poster">Poster:</label>
@@ -145,7 +192,7 @@ const AddMovie = () => {
                     <button type="submit">Add Movie</button>
                 </form>
             </div>
-        </div>
+        <div/>
     );
 };
 

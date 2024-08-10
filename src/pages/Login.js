@@ -33,7 +33,7 @@ const Login = () => {
     <div className="login-page">
       <header>
         <div className="header-content">
-          <div className="logo">TicketFlix Admin</div>
+          <div className="logo">TicketFlix</div>
         </div>
       </header>
 
