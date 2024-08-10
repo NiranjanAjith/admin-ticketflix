@@ -40,6 +40,7 @@ const Header = () => {
                     ) : (
                         <li><Link to="/executive" className='button'><FaUserTie /> Executives</Link></li>
                     )}
+                    <li><Link to='/coupons' className='button'> Coupons </Link></li>
                     <li><button onClick={handleLogout} className="button"><FaSignOutAlt /> Logout</button></li>
                 </ul>
             </nav>
