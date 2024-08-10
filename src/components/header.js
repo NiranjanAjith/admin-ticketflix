@@ -39,7 +39,6 @@ const Header = () => {
                     {place === '/executive'?
                     (<li><Link to="/add-executive" className='button'><FaPlus/> Executive</Link></li>
                     ):(<li><Link><FaUserTie />Executive</Link></li>)}
-                    <li><Link to="/coupon" className='button'> Coupons </Link></li>
                     <li><button onClick={handleLogout} className="button"><FaSignOutAlt /> Logout</button></li>
                 </ul>
             </nav>
