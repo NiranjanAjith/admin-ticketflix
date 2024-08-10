@@ -60,6 +60,7 @@ footer {
   margin: 0 auto;
   padding: 0 15px;
 }
+
 .header-content {
   max-width: 1200px;
   margin: 0 auto;
@@ -87,7 +88,6 @@ footer {
   color: var(--primary-color);
   font-family: 'Arial', sans-serif;
 }
-
 
 .logo {
   font-size: 1.5rem;

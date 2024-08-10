@@ -1,40 +1,63 @@
-// src/pages/AddTheater.js
 import React, { useState } from 'react';
 import { firestore } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import './Dashboard.css';
 
 const AddTheater = () => {
-    const [name, setName] = useState('');
-    const [location, setLocation] = useState('');
-    const [capacity, setCapacity] = useState('');
+    const [theater, setTheater] = useState({
+        'theatre-name': '',
+        owner: '',
+        'contact-phone': '',
+        email: '',
+        'seat-capacity': '',
+        description: '',
+        'seat-matrix': {
+            columns: [0, 0],
+            rows: [0, 0]
+        }
+    });
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setTheater(prev => ({
+            ...prev,
+            [name]: name === 'seat-capacity' ? Number(value) : value
+        }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
         setSuccess(false);
 
-        if (!name || !location || !capacity) {
-            setError('Please fill in all fields');
+        if (!theater['theatre-name'] || !theater.owner || !theater['contact-phone'] || !theater.email || !theater['seat-capacity']) {
+            setError('Please fill in all required fields');
             return;
         }
 
         try {
-            const theaterRef = collection(firestore, 'theaters');
+            const theaterRef = collection(firestore, 'theatres');
             await addDoc(theaterRef, {
-                name,
-                location,
-                capacity: Number(capacity),
+                ...theater,
                 createdAt: new Date()
             });
 
-            // Clear the form
-            setName('');
-            setLocation('');
-            setCapacity('');
+            setTheater({
+                'theatre-name': '',
+                owner: '',
+                'contact-phone': '',
+                email: '',
+                'seat-capacity': '',
+                description: '',
+                'seat-matrix': {
+                    columns: [0, 0],
+                    rows: [0, 0]
+                }
+            });
             setSuccess(true);
         } catch (error) {
             setError('Error adding theater: ' + error.message);
@@ -42,47 +65,62 @@ const AddTheater = () => {
     };
 
     return (
-        <div>
+        <div className="theatre-page">
             <Header />
-            <div className="form-container">
+            <div className="theatre-list-container">
                 <h2>Add New Theater</h2>
                 {error && <p className="error-message">{error}</p>}
                 {success && <p className="success-message">Theater added successfully!</p>}
-                <form onSubmit={handleSubmit}>
-                    <div className="form-field">
-                        <label htmlFor="name">Theater Name:</label>
-                        <input
-                            type="text"
-                            id="name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                        />
+                <form onSubmit={handleSubmit} className="edit-form">
+                    <input
+                        name="theatre-name"
+                        value={theater['theatre-name']}
+                        onChange={handleChange}
+                        placeholder="Theater Name"
+                        required
+                    />
+                    <input
+                        name="owner"
+                        value={theater.owner}
+                        onChange={handleChange}
+                        placeholder="Owner Name"
+                        required
+                    />
+                    <input
+                        name="contact-phone"
+                        value={theater['contact-phone']}
+                        onChange={handleChange}
+                        placeholder="Contact Phone"
+                        required
+                    />
+                    <input
+                        name="email"
+                        type="email"
+                        value={theater.email}
+                        onChange={handleChange}
+                        placeholder="Email"
+                        required
+                    />
+                    <input
+                        name="seat-capacity"
+                        type="number"
+                        value={theater['seat-capacity']}
+                        onChange={handleChange}
+                        placeholder="Seat Capacity"
+                        required
+                    />
+                    <textarea
+                        name="description"
+                        value={theater.description}
+                        onChange={handleChange}
+                        placeholder="Description"
+                    />
+                    <div className="form-actions">
+                        <button type="submit" className="btn-update">Add Theater</button>
                     </div>
-                    <div className="form-field">
-                        <label htmlFor="location">Location:</label>
-                        <input
-                            type="text"
-                            id="location"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="form-field">
-                        <label htmlFor="capacity">Capacity:</label>
-                        <input
-                            type="number"
-                            id="capacity"
-                            value={capacity}
-                            onChange={(e) => setCapacity(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <button type="submit" className="button">Add Theater</button>
                 </form>
             </div>
-            <Footer/>
+            <Footer />
         </div>
     );
 };

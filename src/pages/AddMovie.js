@@ -4,6 +4,7 @@ import { firestore, storage } from '../firebase';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import './Dashboard.css'; // Assuming you have this CSS file
 
 const AddMovie = () => {
     const [movie, setMovie] = useState({
@@ -15,18 +16,14 @@ const AddMovie = () => {
         releaseDate: '',
         showtimes: {
             firstShow: '',
-            Matinee: ''
+            matinee: '',
+            lastShow: ''
         },
-        showEndDate: {}  // Added state for show end dates
+        showEndDate: '',
+        trailer: ''
     });
     const [poster, setPoster] = useState(null);
     const [message, setMessage] = useState({ type: '', content: '' });
-
-    // Added state variables for showtimes and show end dates
-    const [showTimeKey, setShowTimeKey] = useState('');
-    const [showTimeValue, setShowTimeValue] = useState('');
-    const [showEndDateKey, setShowEndDateKey] = useState('');
-    const [showEndDateValue, setShowEndDateValue] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -44,15 +41,6 @@ const AddMovie = () => {
                     [key]: value
                 }
             }));
-        } else if (name.startsWith('showEndDate.')) {
-            const [, key] = name.split('.');
-            setMovie(prevState => ({
-                ...prevState,
-                showEndDate: {
-                    ...prevState.showEndDate,
-                    [key]: value
-                }
-            }));
         } else {
             setMovie(prevState => ({
                 ...prevState,
@@ -65,36 +53,15 @@ const AddMovie = () => {
         setPoster(e.target.files[0]);
     };
 
-    const addShowTime = () => {
-        setMovie(prevState => ({
-            ...prevState,
-            showtimes: {
-                ...prevState.showtimes,
-                [showTimeKey]: showTimeValue
-            }
-        }));
-        setShowTimeKey('');
-        setShowTimeValue('');
-    };
-
-    const addShowEndDate = () => {
-        setMovie(prevState => ({
-            ...prevState,
-            showEndDate: {
-                ...prevState.showEndDate,
-                [showEndDateKey]: showEndDateValue
-            }
-        }));
-        setShowEndDateKey('');
-        setShowEndDateValue('');
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setMessage({ type: '', content: '' });
+
         if (!poster) {
             setMessage({ type: 'error', content: 'Please select a poster image.' });
             return;
         }
+
         try {
             const storageRef = ref(storage, `posters/${movie.title}_${Date.now()}`);
             await uploadBytes(storageRef, poster);
@@ -107,11 +74,10 @@ const AddMovie = () => {
                 releaseDate: Timestamp.fromDate(new Date(movie.releaseDate)),
                 showtimes: {
                     firstShow: Timestamp.fromDate(new Date(movie.showtimes.firstShow)),
-                    Matinee: Timestamp.fromDate(new Date(movie.showtimes.Matinee))
+                    matinee: Timestamp.fromDate(new Date(movie.showtimes.matinee)),
+                    lastShow: Timestamp.fromDate(new Date(movie.showtimes.lastShow))
                 },
-                showEndDate: Object.fromEntries(
-                    Object.entries(movie.showEndDate).map(([key, date]) => [key, Timestamp.fromDate(new Date(date))])
-                )
+                showEndDate: Timestamp.fromDate(new Date(movie.showEndDate))
             };
 
             await addDoc(collection(firestore, 'movies'), movieData);
@@ -126,15 +92,17 @@ const AddMovie = () => {
                 releaseDate: '',
                 showtimes: {
                     firstShow: '',
-                    Matinee: ''
+                    matinee: '',
+                    lastShow: ''
                 },
-                showEndDate: {}
+                showEndDate: '',
+                trailer: ''
             });
             setPoster(null);
             document.getElementById('poster').value = '';
         } catch (error) {
             console.error('Error adding movie: ', error);
-            setMessage({ type: 'error', content: 'Error adding movie. Please try again.' });
+            setMessage({ type: 'error', content: `Error adding movie: ${error.message}` });
         }
     };
 
@@ -148,81 +116,59 @@ const AddMovie = () => {
                         {message.content}
                     </div>
                 )}
-                <form onSubmit={handleSubmit}>
-                    <div>
+                <form onSubmit={handleSubmit} className="add-movie-form">
+                    <div className="form-group">
                         <label htmlFor="title">Title:</label>
                         <input type="text" id="title" name="title" value={movie.title} onChange={handleChange} required />
                     </div>
-                    <div>
+                    <div className="form-group">
                         <label htmlFor="releaseDate">Release Date:</label>
                         <input type="date" id="releaseDate" name="releaseDate" value={movie.releaseDate} onChange={handleChange} required />
                     </div>
-                    <div>
+                    <div className="form-group">
                         <label htmlFor="genre">Genre (comma-separated):</label>
-                        <input type="text" id="genre" name="genre" value={movie.genre} onChange={handleChange} required />
+                        <input type="text" id="genre" name="genre" value={movie.genre.join(', ')} onChange={handleChange} required />
                     </div>
-                    <div>
+                    <div className="form-group">
                         <label htmlFor="duration">Duration (minutes):</label>
                         <input type="number" id="duration" name="duration" value={movie.duration} onChange={handleChange} required />
                     </div>
-                    <div>
+                    <div className="form-group">
                         <label htmlFor="description">Description:</label>
                         <textarea id="description" name="description" value={movie.description} onChange={handleChange} required></textarea>
                     </div>
-                    <div>
+                    <div className="form-group">
                         <label htmlFor="rating">Rating:</label>
                         <input type="number" step="0.1" id="rating" name="rating" value={movie.rating} onChange={handleChange} required />
                     </div>
-                    <div>
+                    <div className="form-group">
                         <label htmlFor="trailer">Trailer URL:</label>
                         <input type="url" id="trailer" name="trailer" value={movie.trailer} onChange={handleChange} required />
                     </div>
-                    <div>
+                    <div className="form-group">
                         <h3>Showtimes</h3>
-                        {Object.entries(movie.showtimes).map(([key, value]) => (
-                            <div key={key}>
-                                {key}: {value}
-                            </div>
-                        ))}
-                        <input
-                            type="text"
-                            placeholder="Show Time Key"
-                            value={showTimeKey}
-                            onChange={(e) => setShowTimeKey(e.target.value)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Show Time Value"
-                            value={showTimeValue}
-                            onChange={(e) => setShowTimeValue(e.target.value)}
-                        />
-                        <button type="button" onClick={addShowTime}>Add Showtime</button>
+                        <div>
+                            <label htmlFor="firstShow">First Show:</label>
+                            <input type="datetime-local" id="firstShow" name="showtimes.firstShow" value={movie.showtimes.firstShow} onChange={handleChange} required />
+                        </div>
+                        <div>
+                            <label htmlFor="matinee">Matinee:</label>
+                            <input type="datetime-local" id="matinee" name="showtimes.matinee" value={movie.showtimes.matinee} onChange={handleChange} required />
+                        </div>
+                        <div>
+                            <label htmlFor="lastShow">Last Show:</label>
+                            <input type="datetime-local" id="lastShow" name="showtimes.lastShow" value={movie.showtimes.lastShow} onChange={handleChange} required />
+                        </div>
                     </div>
-                    <div>
-                        <h3>Show End Dates</h3>
-                        {Object.entries(movie.showEndDate).map(([key, value]) => (
-                            <div key={key}>
-                                {key}: {value}
-                            </div>
-                        ))}
-                        <input
-                            type="text"
-                            placeholder="Show End Date Key"
-                            value={showEndDateKey}
-                            onChange={(e) => setShowEndDateKey(e.target.value)}
-                        />
-                        <input
-                            type="date"
-                            value={showEndDateValue}
-                            onChange={(e) => setShowEndDateValue(e.target.value)}
-                        />
-                        <button type="button" onClick={addShowEndDate}>Add Show End Date</button>
+                    <div className="form-group">
+                        <label htmlFor="showEndDate">Show End Date:</label>
+                        <input type="date" id="showEndDate" name="showEndDate" value={movie.showEndDate} onChange={handleChange} required />
                     </div>
-                    <div>
+                    <div className="form-group">
                         <label htmlFor="poster">Poster:</label>
                         <input type="file" id="poster" name="poster" accept="image/*" onChange={handlePosterChange} required />
                     </div>
-                    <button type="submit">Add Movie</button>
+                    <button type="submit" className="btn-submit">Add Movie</button>
                 </form>
             </div>
             <Footer />

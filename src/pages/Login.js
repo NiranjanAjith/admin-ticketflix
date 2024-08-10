@@ -1,5 +1,4 @@
-// src/components/Login.js
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -13,21 +12,23 @@ const Login = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
 
+  // Use useEffect to handle navigation after component renders
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/');
+      // Navigation will be handled by useEffect after user state changes
     } catch (error) {
       setError(error.message);
     }
   };
-
-  if (user) {
-    navigate('/');
-    return null;
-  }
 
   return (
     <div className="login-page">

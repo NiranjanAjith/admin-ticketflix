@@ -6,10 +6,11 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import { auth } from './firebase';
 import AddTheatre from './pages/AddTheatre';
-import Movie from './pages/movie';
+import Theatre from './pages/Theatre';
+import Movie from './pages/Movie';
 import AddMovie from './pages/AddMovie'
 import AddExecutive from './pages/AddExecutive';
-import QRCodeGenerator from './pages/genQR'
+import Executive from './pages/Executive';
 
 const PrivateRoute = ({ children }) => {
   return auth.currentUser ? children : <Navigate to="/login" />;
@@ -22,55 +23,63 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
 
-          <Route
-            path="/"
+          <Route 
+            path="/" 
             element={
               <PrivateRoute>
                 <Dashboard />
               </PrivateRoute>
-            }
+            } 
           />
-
-          <Route
-            path='/add-theatre'
+          
+          <Route 
+            path='/add-theatre' 
             element={
               <PrivateRoute>
                 <AddTheatre />
               </PrivateRoute>
             }
           />
+          <Route 
+            path='/theatre' 
+            element={
+              <PrivateRoute>
+                <Theatre />
+              </PrivateRoute>
+            }
+          />
 
-          <Route
-            path='/movie'
+          <Route 
+            path='/movie' 
             element={
               <PrivateRoute>
                 <Movie />
               </PrivateRoute>
             }
           />
-          <Route
-            path='/add-movie'
+          <Route 
+            path='/add-movie' 
             element={
               <PrivateRoute>
                 <AddMovie />
               </PrivateRoute>
             }
           />
-
-          <Route
-            path='/add-executive'
+          
+          <Route 
+            path='/executive' 
             element={
               <PrivateRoute>
-                <AddExecutive />
+                <Executive />
               </PrivateRoute>
             }
           />
 
-          <Route
-            path='/coupon'
+          <Route 
+            path='/add-executive' 
             element={
               <PrivateRoute>
-                <QRCodeGenerator />
+                <AddExecutive />
               </PrivateRoute>
             }
           />
