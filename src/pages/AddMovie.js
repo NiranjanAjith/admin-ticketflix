@@ -16,10 +16,17 @@ const AddMovie = () => {
         showtimes: {
             firstShow: '',
             Matinee: ''
-        }
+        },
+        showEndDate: {}  // Added state for show end dates
     });
     const [poster, setPoster] = useState(null);
     const [message, setMessage] = useState({ type: '', content: '' });
+
+    // Added state variables for showtimes and show end dates
+    const [showTimeKey, setShowTimeKey] = useState('');
+    const [showTimeValue, setShowTimeValue] = useState('');
+    const [showEndDateKey, setShowEndDateKey] = useState('');
+    const [showEndDateValue, setShowEndDateValue] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -37,6 +44,15 @@ const AddMovie = () => {
                     [key]: value
                 }
             }));
+        } else if (name.startsWith('showEndDate.')) {
+            const [, key] = name.split('.');
+            setMovie(prevState => ({
+                ...prevState,
+                showEndDate: {
+                    ...prevState.showEndDate,
+                    [key]: value
+                }
+            }));
         } else {
             setMovie(prevState => ({
                 ...prevState,
@@ -45,7 +61,33 @@ const AddMovie = () => {
         }
     };
 
+    const handlePosterChange = (e) => {
+        setPoster(e.target.files[0]);
+    };
 
+    const addShowTime = () => {
+        setMovie(prevState => ({
+            ...prevState,
+            showtimes: {
+                ...prevState.showtimes,
+                [showTimeKey]: showTimeValue
+            }
+        }));
+        setShowTimeKey('');
+        setShowTimeValue('');
+    };
+
+    const addShowEndDate = () => {
+        setMovie(prevState => ({
+            ...prevState,
+            showEndDate: {
+                ...prevState.showEndDate,
+                [showEndDateKey]: showEndDateValue
+            }
+        }));
+        setShowEndDateKey('');
+        setShowEndDateValue('');
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -66,7 +108,10 @@ const AddMovie = () => {
                 showtimes: {
                     firstShow: Timestamp.fromDate(new Date(movie.showtimes.firstShow)),
                     Matinee: Timestamp.fromDate(new Date(movie.showtimes.Matinee))
-                }
+                },
+                showEndDate: Object.fromEntries(
+                    Object.entries(movie.showEndDate).map(([key, date]) => [key, Timestamp.fromDate(new Date(date))])
+                )
             };
 
             await addDoc(collection(firestore, 'movies'), movieData);
@@ -82,7 +127,8 @@ const AddMovie = () => {
                 showtimes: {
                     firstShow: '',
                     Matinee: ''
-                }
+                },
+                showEndDate: {}
             });
             setPoster(null);
             document.getElementById('poster').value = '';
@@ -91,7 +137,6 @@ const AddMovie = () => {
             setMessage({ type: 'error', content: 'Error adding movie. Please try again.' });
         }
     };
-
 
     return (
         <div className="add-movie-page">
@@ -117,20 +162,8 @@ const AddMovie = () => {
                         <input type="text" id="genre" name="genre" value={movie.genre} onChange={handleChange} required />
                     </div>
                     <div>
-                        <label htmlFor="language">Language:</label>
-                        <input type="text" id="language" name="language" value={movie.language} onChange={handleChange} required />
-                    </div>
-                    <div>
                         <label htmlFor="duration">Duration (minutes):</label>
                         <input type="number" id="duration" name="duration" value={movie.duration} onChange={handleChange} required />
-                    </div>
-                    <div>
-                        <label htmlFor="cast">Cast (comma-separated):</label>
-                        <input type="text" id="cast" name="cast" value={movie.cast} onChange={handleChange} required />
-                    </div>
-                    <div>
-                        <label htmlFor="director">Director:</label>
-                        <input type="text" id="director" name="director" value={movie.director} onChange={handleChange} required />
                     </div>
                     <div>
                         <label htmlFor="description">Description:</label>
@@ -153,13 +186,13 @@ const AddMovie = () => {
                         ))}
                         <input
                             type="text"
-                            placeholder="Theater ID"
+                            placeholder="Show Time Key"
                             value={showTimeKey}
                             onChange={(e) => setShowTimeKey(e.target.value)}
                         />
                         <input
                             type="text"
-                            placeholder="Show Time"
+                            placeholder="Show Time Value"
                             value={showTimeValue}
                             onChange={(e) => setShowTimeValue(e.target.value)}
                         />
@@ -174,7 +207,7 @@ const AddMovie = () => {
                         ))}
                         <input
                             type="text"
-                            placeholder="Theater ID"
+                            placeholder="Show End Date Key"
                             value={showEndDateKey}
                             onChange={(e) => setShowEndDateKey(e.target.value)}
                         />
@@ -192,7 +225,8 @@ const AddMovie = () => {
                     <button type="submit">Add Movie</button>
                 </form>
             </div>
-        <div/>
+            <Footer />
+        </div>
     );
 };
 
