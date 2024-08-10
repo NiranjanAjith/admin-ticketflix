@@ -9,6 +9,7 @@ import AddTheatre from './pages/AddTheatre';
 import Movie from './pages/movie';
 import AddMovie from './pages/AddMovie'
 import AddExecutive from './pages/AddExecutive';
+import QRCodeGenerator from './pages/genQR'
 
 const PrivateRoute = ({ children }) => {
   return auth.currentUser ? children : <Navigate to="/login" />;
@@ -21,17 +22,17 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
 
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
               <PrivateRoute>
                 <Dashboard />
               </PrivateRoute>
-            } 
+            }
           />
-          
-          <Route 
-            path='/add-theatre' 
+
+          <Route
+            path='/add-theatre'
             element={
               <PrivateRoute>
                 <AddTheatre />
@@ -39,28 +40,37 @@ function App() {
             }
           />
 
-          <Route 
-            path='/movie' 
+          <Route
+            path='/movie'
             element={
               <PrivateRoute>
                 <Movie />
               </PrivateRoute>
             }
           />
-          <Route 
-            path='/add-movie' 
+          <Route
+            path='/add-movie'
             element={
               <PrivateRoute>
                 <AddMovie />
               </PrivateRoute>
             }
           />
-          
-          <Route 
-            path='/add-executive' 
+
+          <Route
+            path='/add-executive'
             element={
               <PrivateRoute>
                 <AddExecutive />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path='/coupon'
+            element={
+              <PrivateRoute>
+                <QRCodeGenerator />
               </PrivateRoute>
             }
           />
