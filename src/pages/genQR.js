@@ -13,7 +13,8 @@ function QRCodeGenerator() {
     const [numCoupons, setNumCoupons] = useState('');
     const [pdfUrl, setPdfUrl] = useState(null);
     const [amountPaid, setAmountPaid] = useState('');
-    const [executiveId, setExecutiveId] = useState('');
+    const [executiveCode, setExecutiveCode] = useState('');
+    const [ticketType, setTicketType] = useState('');
     const [tickets, setTickets] = useState([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [executives, setExecutives] = useState([]);
@@ -203,57 +204,58 @@ function QRCodeGenerator() {
         setPdfUrl(pdfUrl);
     };
 
-    const createNewTicket = async (amt, exec) => {
+    const createNewTicket = async (amt, execCode, type) => {
         try {
-            const couponsRef = collection(firestore, 'coupon');
-            const newCoupon = {
+            const ticketsRef = collection(firestore, 'tickets');
+            const newTicket = {
                 'amount-paid': amt,
                 'coupon_code': `FREE${Math.random().toString(36).substring(7).toUpperCase()}`,
                 'show-id': '',
                 'ticket-id': `T${Math.random().toString(36).substring(7).toUpperCase()}`,
                 'user-id': '',
-                'executiveId': exec,
-                'class': 'Standard' // Added class field
+                'executiveCode': execCode,
+                'class': type
             };
 
-            const docRef = await addDoc(couponsRef, newCoupon);
-            return { id: docRef.id, ...newCoupon };
+            const docRef = await addDoc(ticketsRef, newTicket);
+            return { id: docRef.id, ...newTicket };
 
         } catch (error) {
             console.error("Error adding document: ", error);
-            throw new Error('Failed to create new coupon. Please try again later.');
+            throw new Error('Failed to create new ticket. Please try again later.');
         }
     };
 
     const processCoupons = async () => {
         setIsGenerating(true);
         const processedTickets = [];
+        const totalAmount = parseFloat(amountPaid);
 
         try {
             const newTicketsNeeded = Math.max(0, parseInt(numCoupons) - tickets.length);
             const newTickets = [];
             for (let i = 0; i < newTicketsNeeded; i++) {
-                const newTicket = await createNewTicket(amountPaid, executiveId);
+                const newTicket = await createNewTicket(amountPaid, executiveCode, ticketType);
                 newTickets.push(newTicket);
             }
-            setCoupons(prevCoupons => [...prevCoupons, ...newCoupons]);
+            setTickets(prevTickets => [...prevTickets, ...newTickets]);
 
             for (let i = 0; i < parseInt(numCoupons); i++) {
-                const coupon = newCoupons[i];
-                if (!coupon) {
-                    console.error(`Coupon at index ${i} is undefined`);
+                const ticket = newTickets[i];
+                if (!ticket) {
+                    console.error(`Ticket at index ${i} is undefined`);
                     continue;
                 }
-                const hashedCode = hashCode(coupon.coupon_code);
-                const urlCode = encodeURIComponent(hashedCode + coupon.id);
-                const couponURL = `https://www.ticketflix.com/coupon/view/${urlCode}`;
-                const qrDataUrl = await generateQRCode(couponURL);
-                const storageUrl = await saveQRCodeToStorage(qrDataUrl, coupon.id);
-                await updateFirestoreWithQRCodeUrl(coupon.id, storageUrl);
-                processedCoupons.push({ coupon, qrDataUrl });
+                const hashedCode = hashCode(ticket.coupon_code);
+                const urlCode = encodeURIComponent(hashedCode + ticket.id);
+                const ticketURL = `https://www.ticketflix.com/ticket/view/${urlCode}`;
+                const qrDataUrl = await generateQRCode(ticketURL);
+                const storageUrl = await saveQRCodeToStorage(qrDataUrl, ticket.id);
+                await updateFirestoreWithQRCodeUrl(ticket.id, storageUrl);
+                processedTickets.push({ ticket, qrDataUrl });
             }
 
-            generatePDF(processedTickets);
+            generatePDF(processedTickets, totalAmount);
         } catch (error) {
             console.error("Error processing coupons:", error);
             alert("An error occurred while processing coupons. Please try again.");
@@ -311,7 +313,11 @@ function QRCodeGenerator() {
                     onChange={(e) => setTicketType(e.target.value)}
                     required
                     style={{ marginBottom: '10px', display: 'block', width: '100%', padding: '8px' }}
-                />
+                >
+                    <option value="">Select Ticket Type</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Luxury">Luxury</option>
+                </select>
                 <button 
                     onClick={handleSubmit} 
                     disabled={isGenerating}
@@ -320,8 +326,8 @@ function QRCodeGenerator() {
                     {isGenerating ? 'Generating...' : 'Generate QR Codes'}
                 </button>
                 {pdfUrl && (
-                    <a
-                        href={pdfUrl}
+                    <a 
+                        href={pdfUrl} 
                         download="qr_codes.pdf"
                         style={{ display: 'block', textAlign: 'center', padding: '10px', backgroundColor: '#28a745', color: 'white', textDecoration: 'none', borderRadius: '4px' }}
                     >
