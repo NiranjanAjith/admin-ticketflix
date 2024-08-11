@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, updateDoc, doc, addDoc } from 'firebase/firestore';
+import { collection, updateDoc, doc, addDoc, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { firestore, storage } from '../firebase';
 import Header from '../components/Header';
@@ -8,35 +8,29 @@ import { sha256 } from 'js-sha256';
 import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
 
+
 function QRCodeGenerator() {
     const [numCoupons, setNumCoupons] = useState('');
     const [pdfUrl, setPdfUrl] = useState(null);
     const [amountPaid, setAmountPaid] = useState('');
-    const [executiveId, setExecutiveId] = useState('');
+    const [executiveCode, setExecutiveCode] = useState('');
+    const [ticketType, setTicketType] = useState('');
     const [tickets, setTickets] = useState([]);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [appLogo, setAppLogo] = useState(null);
-
-    const logoUrl = "https://firebasestorage.googleapis.com/v0/b/movie-campaign.appspot.com/o/ticketflix-high-resolution-logo.png?alt=media&token=806c6054-f2d1-449e-80a6-690bde74134f";
+    const [executives, setExecutives] = useState([]);
 
     useEffect(() => {
-        // Load app logo
-        fetch(logoUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                const reader = new FileReader();
-                reader.onloadend = () => setAppLogo(reader.result);
-                reader.readAsDataURL(blob);
-            })
-            .catch(error => {
-                console.error("Error loading app logo:", error);
-                // Set a default logo or handle the error as needed
-            });
+        const fetchExecutives = async () => {
+            const executivesRef = collection(firestore, 'executives');
+            const executivesSnapshot = await getDocs(executivesRef);
+            const executivesList = executivesSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setExecutives(executivesList);
+        };
+
+        fetchExecutives();
     }, []);
 
     const hashCode = (code) => {
@@ -60,71 +54,149 @@ function QRCodeGenerator() {
         await updateDoc(ticketRef, { qrCodeUrl });
     };
 
-    const drawTicket = (pdf, ticket, qrDataUrl) => {
-        // Set up dimensions
-        const ticketWidth = 180;
-        const ticketHeight = 80;
-        const leftWidth = 130;
-        const rightWidth = 50;
-        const margin = 10;
+    const drawTicket = (pdf, ticket, qrDataUrl, startX, startY, ticketWidth, ticketHeight, totalAmount, totalTickets) => {
+        // Calculate individual ticket amount
+        const ticketAmount = (totalAmount / totalTickets).toFixed(2);
 
-        // Draw outer border
-        pdf.setDrawColor(0);
-        pdf.setLineWidth(0.5);
-        pdf.rect(margin, margin, ticketWidth, ticketHeight);
-
-        // Draw left side
-        pdf.setFillColor(255, 191, 0);
-        pdf.rect(margin, margin, leftWidth, ticketHeight, 'F');
-
-        // Draw right side (white background)
-        pdf.setFillColor(255, 255, 255);
-        pdf.rect(margin + leftWidth, margin, rightWidth, ticketHeight, 'F');
-
-        // Add content to left side
-        pdf.setFontSize(12);
-        pdf.setTextColor(0);
-        pdf.text(`Ticket ID: ${ticket['ticket-id']}`, margin + 5, margin + 15);
-        pdf.text(`Class: ${ticket['class'] || 'Standard'}`, margin + 5, margin + 25);
-        pdf.text(`Number of Tickets: ${numCoupons}`, margin + 5, margin + 35);
-        pdf.text(`Amount Paid: ${ticket['amount-paid']}`, margin + 5, margin + 45);
-
-        // Add app logo
-        if (appLogo) {
-            pdf.addImage(appLogo, 'PNG', margin + 5, margin + 55, 40, 20);
+        // Draw background (gradient approximation)
+        const gradientColors = [
+            { r: 20, g: 184, b: 166 },  // teal-500
+            { r: 8, g: 145, b: 178 }    // cyan-600
+        ];
+        for (let i = 0; i < ticketWidth; i++) {
+            const t = i / ticketWidth;
+            const r = Math.round(gradientColors[0].r * (1 - t) + gradientColors[1].r * t);
+            const g = Math.round(gradientColors[0].g * (1 - t) + gradientColors[1].g * t);
+            const b = Math.round(gradientColors[0].b * (1 - t) + gradientColors[1].b * t);
+            pdf.setDrawColor(r, g, b);
+            pdf.setFillColor(r, g, b);
+            pdf.rect(startX + i, startY, 1, ticketHeight, 'F');
         }
+    
+        // Add rounded corners (approximation)
+        pdf.setDrawColor(255, 255, 255);
+        pdf.setFillColor(255, 255, 255);
+        const cornerRadius = 5;
+        pdf.circle(startX, startY, cornerRadius, 'F');
+        pdf.circle(startX + ticketWidth, startY, cornerRadius, 'F');
+        pdf.circle(startX, startY + ticketHeight, cornerRadius, 'F');
+        pdf.circle(startX + ticketWidth, startY + ticketHeight, cornerRadius, 'F');
+    
+        // Column 1
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.setTextColor(255, 255, 255);
+        pdf.text(`Type: ${ticket.class}`, startX + 10, startY + 20);
+    
+        pdf.setFontSize(24);
+        pdf.text("TICKET FLIX", startX + 10, startY + 40);
+    
+        pdf.setFillColor(79, 70, 229); // indigo-600
+        pdf.roundedRect(startX + 10, startY + 50, ticketWidth * 0.3, 15, 7.5, 7.5, 'F');
+        pdf.setFontSize(12);
+        pdf.text(`Amount: ${ticketAmount} Rs.`, startX + 15, startY + 60);
 
-        // Add QR code to right side
-        const qrSize = 40;
-        const qrMargin = (rightWidth - qrSize) / 2;
-        pdf.addImage(qrDataUrl, 'PNG', margin + leftWidth + qrMargin, margin + (ticketHeight - qrSize) / 2, qrSize, qrSize);
+        // Add total amount and ticket count
+        pdf.setFontSize(8);
+        pdf.text(`Total: ${totalAmount} Rs.(${totalTickets} tickets)`, startX + 15, startY + 70);
+    
+        // Column 2
+        const column2X = startX + ticketWidth * 0.4;
+        const column2Width = ticketWidth * 0.3;
+        const labelFontSize = 8;
+        const contentFontSize = 10;
+        const boxHeight = 18;
+        const spaceBetweenBoxes = 10;
 
-        // Draw dividing line
-        pdf.setDrawColor(0);
-        pdf.setLineWidth(0.5);
-        pdf.line(margin + leftWidth, margin, margin + leftWidth, margin + ticketHeight);
+        // Coupon Code
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(labelFontSize);
+        pdf.text("Coupon Code", column2X, startY + 20);
 
-        // Add decorative circles
-        [0.2, 0.4, 0.6, 0.8].forEach(y => {
-            pdf.setFillColor(255, 255, 255);
-            pdf.circle(margin + leftWidth, margin + y * ticketHeight, 3, 'F');
-            pdf.setDrawColor(0);
-            pdf.circle(margin + leftWidth, margin + y * ticketHeight, 3, 'S');
-        });
+        pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(column2X, startY + 23, column2Width, boxHeight, 3, 3, 'F');
+
+        pdf.setTextColor(0, 128, 128);
+        pdf.setFontSize(contentFontSize);
+        const couponCode = ticket.coupon_code;
+        const couponCodeY = startY + 23 + (boxHeight / 2) + (contentFontSize / 4);
+        pdf.text(couponCode, column2X + 5, couponCodeY);
+
+        // Executive ID
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(labelFontSize);
+        pdf.text("Executive ID", column2X, startY + 20 + boxHeight + spaceBetweenBoxes);
+
+        pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(column2X, startY + 23 + boxHeight + spaceBetweenBoxes, column2Width, boxHeight, 3, 3, 'F');
+
+        pdf.setTextColor(0, 128, 128);
+        pdf.setFontSize(contentFontSize);
+        const executiveCode = ticket.executiveCode;
+        const executiveCodeY = startY + 23 + boxHeight + spaceBetweenBoxes + (boxHeight / 2) + (contentFontSize / 4);
+        pdf.text(executiveCode, column2X + 5, executiveCodeY);
+
+        // Add a clipping mask to prevent text overflow
+        pdf.saveGraphicsState();
+        pdf.rect(column2X + 5, startY + 23, column2Width - 10, boxHeight, 'S');
+        pdf.clip();
+        pdf.text(couponCode, column2X + 5, couponCodeY);
+        pdf.restoreGraphicsState();
+
+        pdf.saveGraphicsState();
+        pdf.rect(column2X + 5, startY + 23 + boxHeight + spaceBetweenBoxes, column2Width - 10, boxHeight, 'S');
+        pdf.clip();
+        pdf.text(executiveCode, column2X + 5, executiveCodeY);
+        pdf.restoreGraphicsState();
+        
+        // Column 3 (QR Code)
+        const qrSize = ticketHeight * 0.7;
+        pdf.addImage(qrDataUrl, 'PNG', startX + ticketWidth - qrSize - 20, startY + (ticketHeight - qrSize) / 2, qrSize, qrSize);
+    
+        // Add ticket number out of total
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.text(`Ticket ${ticket.ticketNumber} of ${totalTickets}`, startX + ticketWidth - 60, startY + ticketHeight - 10);
+
+        // Add shadow effect (approximation)
+        pdf.setDrawColor(0, 0, 0);
+        pdf.setFillColor(0, 0, 0);
+        pdf.setGState(new pdf.GState({opacity: 0.1}));
+        pdf.roundedRect(startX + 2, startY + 2, ticketWidth, ticketHeight, 5, 5, 'F');
+        pdf.setGState(new pdf.GState({opacity: 1}));
     };
 
-    const generatePDF = (ticketsWithQR) => {
+    const generatePDF = (ticketsWithQR, totalAmount) => {
         const pdf = new jsPDF({
             unit: 'mm',
             format: 'a4',
             orientation: 'portrait'
         });
 
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+        const ticketWidth = pageWidth - 2 * margin;
+        const ticketHeight = 80; // Fixed height for each ticket
+        const ticketsPerPage = Math.floor((pageHeight - 2 * margin) / (ticketHeight + margin));
+
+        const totalTickets = ticketsWithQR.length;
+
         ticketsWithQR.forEach((item, index) => {
-            if (index > 0) {
+            const pageIndex = Math.floor(index / ticketsPerPage);
+            const ticketIndex = index % ticketsPerPage;
+
+            if (ticketIndex === 0 && index > 0) {
                 pdf.addPage();
             }
-            drawTicket(pdf, item.ticket, item.qrDataUrl);
+
+            const startX = margin;
+            const startY = margin + ticketIndex * (ticketHeight + margin);
+
+            // Add ticket number to the ticket object
+            item.ticket.ticketNumber = index + 1;
+
+            drawTicket(pdf, item.ticket, item.qrDataUrl, startX, startY, ticketWidth, ticketHeight, totalAmount, totalTickets);
         });
 
         const pdfBlob = pdf.output('blob');
@@ -132,7 +204,7 @@ function QRCodeGenerator() {
         setPdfUrl(pdfUrl);
     };
 
-    const createNewTicket = async (amt, exec) => {
+    const createNewTicket = async (amt, execCode, type) => {
         try {
             const ticketsRef = collection(firestore, 'tickets');
             const newTicket = {
@@ -141,8 +213,8 @@ function QRCodeGenerator() {
                 'show-id': '',
                 'ticket-id': `T${Math.random().toString(36).substring(7).toUpperCase()}`,
                 'user-id': '',
-                'executiveId': exec,
-                'class': 'Standard' // Added class field
+                'executiveCode': execCode,
+                'class': type
             };
 
             const docRef = await addDoc(ticketsRef, newTicket);
@@ -157,12 +229,13 @@ function QRCodeGenerator() {
     const processCoupons = async () => {
         setIsGenerating(true);
         const processedTickets = [];
+        const totalAmount = parseFloat(amountPaid);
 
         try {
             const newTicketsNeeded = Math.max(0, parseInt(numCoupons) - tickets.length);
             const newTickets = [];
             for (let i = 0; i < newTicketsNeeded; i++) {
-                const newTicket = await createNewTicket(amountPaid, executiveId);
+                const newTicket = await createNewTicket(amountPaid, executiveCode, ticketType);
                 newTickets.push(newTicket);
             }
             setTickets(prevTickets => [...prevTickets, ...newTickets]);
@@ -182,7 +255,7 @@ function QRCodeGenerator() {
                 processedTickets.push({ ticket, qrDataUrl });
             }
 
-            generatePDF(processedTickets);
+            generatePDF(processedTickets, totalAmount);
         } catch (error) {
             console.error("Error processing coupons:", error);
             alert("An error occurred while processing coupons. Please try again.");
@@ -193,7 +266,7 @@ function QRCodeGenerator() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        if (isNaN(parseFloat(amountPaid)) || !executiveId || !numCoupons) {
+        if (isNaN(parseFloat(amountPaid)) || !executiveCode || !numCoupons || !ticketType) {
             alert('Please provide valid inputs for all fields.');
             return;
         }
@@ -220,15 +293,31 @@ function QRCodeGenerator() {
                     required
                     style={{ marginBottom: '10px', display: 'block', width: '100%', padding: '8px' }}
                 />
-                <input
-                    type="text"
-                    id="executiveId"
-                    placeholder='Executive ID'
-                    value={executiveId}
-                    onChange={(e) => setExecutiveId(e.target.value)}
+                <select
+                    id="executiveCode"
+                    value={executiveCode}
+                    onChange={(e) => setExecutiveCode(e.target.value)}
                     required
                     style={{ marginBottom: '10px', display: 'block', width: '100%', padding: '8px' }}
-                />
+                >
+                    <option value="">Select an Executive</option>
+                    {executives.map((executive) => (
+                        <option key={executive.executiveCode} value={executive.executiveCode}>
+                            {executive.name} ({executive.executiveCode})
+                        </option>
+                    ))}
+                </select>
+                <select
+                    id="ticketType"
+                    value={ticketType}
+                    onChange={(e) => setTicketType(e.target.value)}
+                    required
+                    style={{ marginBottom: '10px', display: 'block', width: '100%', padding: '8px' }}
+                >
+                    <option value="">Select Ticket Type</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Luxury">Luxury</option>
+                </select>
                 <button 
                     onClick={handleSubmit} 
                     disabled={isGenerating}

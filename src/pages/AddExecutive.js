@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { firestore } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+
+// Function to generate executive code
+const generateExecutiveCode = (name, phoneNumber) => {
+    // Extract initials from the name
+    const nameParts = name.split(' ');
+    const initials = nameParts.map(part => part.charAt(0).toUpperCase()).join('');
+
+    // Extract a part of the phone number (last 4 digits)
+    const phonePart = phoneNumber.slice(-4);
+
+    // Combine initials with phone part to generate the executive code
+    return `${initials}${phonePart}`;
+};
 
 const AddExecutive = () => {
     const [executive, setExecutive] = useState({
@@ -12,9 +25,21 @@ const AddExecutive = () => {
         department: '',
         hireDate: '',
         phoneNumber: '',
+        executiveCode: '',
     });
 
     const [message, setMessage] = useState({ type: '', content: '' });
+
+    useEffect(() => {
+        // Generate executive code whenever name or phoneNumber changes
+        if (executive.name && executive.phoneNumber) {
+            const code = generateExecutiveCode(executive.name, executive.phoneNumber);
+            setExecutive(prevState => ({
+                ...prevState,
+                executiveCode: code
+            }));
+        }
+    }, [executive.name, executive.phoneNumber]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -36,6 +61,7 @@ const AddExecutive = () => {
                 department: '',
                 hireDate: '',
                 phoneNumber: '',
+                executiveCode: '',
             });
         } catch (error) {
             console.error('Error adding executive: ', error);
@@ -54,6 +80,16 @@ const AddExecutive = () => {
                     </div>
                 )}
                 <form onSubmit={handleSubmit}>
+                    <div>
+                        <label htmlFor="executiveCode">Executive Code:</label>
+                        <input
+                            type="text"
+                            id="executiveCode"
+                            name="executiveCode"
+                            value={executive.executiveCode}
+                            readOnly
+                        />
+                    </div>
                     <div>
                         <label htmlFor="name">Name:</label>
                         <input
@@ -123,7 +159,7 @@ const AddExecutive = () => {
                     <button type="submit">Add Executive</button>
                 </form>
             </div>
-            <Footer/>
+            <Footer />
         </div>
     );
 };

@@ -8,6 +8,7 @@ import { auth } from './firebase';
 import AddTheatre from './pages/AddTheatre';
 import Theatre from './pages/Theatre';
 import Movie from './pages/Movie';
+import AddShowTimes from './pages/AddShowTimes';
 import AddMovie from './pages/AddMovie'
 import AddExecutive from './pages/AddExecutive';
 import Executive from './pages/Executive';
@@ -81,6 +82,15 @@ function App() {
             element={
               <PrivateRoute>
                 <AddExecutive />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path='/add-showtimes/:movieId'
+            element={
+              <PrivateRoute>
+                <AddShowTimes />
               </PrivateRoute>
             }
           />

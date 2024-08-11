@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { collection, addDoc, Timestamp, getDocs } from 'firebase/firestore';
 import { firestore, storage } from '../firebase';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import './Dashboard.css'; // Assuming you have this CSS file
+import './Dashboard.css';
 
 const AddMovie = () => {
     const [movie, setMovie] = useState({
@@ -14,32 +14,38 @@ const AddMovie = () => {
         genre: [],
         rating: 0,
         releaseDate: '',
-        showtimes: {
-            firstShow: '',
-            matinee: '',
-            lastShow: ''
-        },
         showEndDate: '',
-        trailer: ''
+        trailer: '',
+        cast: [],
+        director: '',
+        theaterIds: []
     });
     const [poster, setPoster] = useState(null);
     const [message, setMessage] = useState({ type: '', content: '' });
+    const [theaters, setTheaters] = useState([]);
+    const [showtimes, setShowtimes] = useState({});
+    const [ticketRates, setTicketRates] = useState({});
+    const [seatMatrix, setSeatMatrix] = useState({});
+
+    useEffect(() => {
+        const fetchTheaters = async () => {
+            const theatersCollection = collection(firestore, 'theatres');
+            const theaterSnapshot = await getDocs(theatersCollection);
+            const theaterList = theaterSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setTheaters(theaterList);
+        };
+        fetchTheaters();
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'genre') {
+        if (name === 'genre' || name === 'cast') {
             setMovie(prevState => ({
                 ...prevState,
                 [name]: value.split(',').map(item => item.trim())
-            }));
-        } else if (name.startsWith('showtimes.')) {
-            const [, key] = name.split('.');
-            setMovie(prevState => ({
-                ...prevState,
-                showtimes: {
-                    ...prevState.showtimes,
-                    [key]: value
-                }
             }));
         } else {
             setMovie(prevState => ({
@@ -47,6 +53,18 @@ const AddMovie = () => {
                 [name]: value
             }));
         }
+    };
+
+    const handleTheaterChange = (e) => {
+        const theaterId = e.target.value;
+        const isChecked = e.target.checked;
+        
+        setMovie(prevState => ({
+            ...prevState,
+            theaterIds: isChecked
+                ? [...prevState.theaterIds, theaterId]
+                : prevState.theaterIds.filter(id => id !== theaterId)
+        }));
     };
 
     const handlePosterChange = (e) => {
@@ -72,12 +90,23 @@ const AddMovie = () => {
                 posterUrl,
                 rating: parseFloat(movie.rating),
                 releaseDate: Timestamp.fromDate(new Date(movie.releaseDate)),
-                showtimes: {
-                    firstShow: Timestamp.fromDate(new Date(movie.showtimes.firstShow)),
-                    matinee: Timestamp.fromDate(new Date(movie.showtimes.matinee)),
-                    lastShow: Timestamp.fromDate(new Date(movie.showtimes.lastShow))
-                },
-                showEndDate: Timestamp.fromDate(new Date(movie.showEndDate))
+                showEndDate: Timestamp.fromDate(new Date(movie.showEndDate)),
+                showInfo: movie.theaterIds.reduce((acc, theaterId) => {
+                    acc[theaterId] = {
+                        timings: showtimes[theaterId],
+                        ticketRates: {
+                            Elite: ticketRates[theaterId][0],
+                            Premium: ticketRates[theaterId][1],
+                            Standard: ticketRates[theaterId][2]
+                        },
+                        seatMatrix: {
+                            rows: seatMatrix[theaterId].rows,
+                            columns: seatMatrix[theaterId].columns
+                        },
+                        availableSeatCapacity: seatMatrix[theaterId].rows.length * seatMatrix[theaterId].columns.length
+                    };
+                    return acc;
+                }, {})
             };
 
             await addDoc(collection(firestore, 'movies'), movieData);
@@ -90,15 +119,16 @@ const AddMovie = () => {
                 genre: [],
                 rating: 0,
                 releaseDate: '',
-                showtimes: {
-                    firstShow: '',
-                    matinee: '',
-                    lastShow: ''
-                },
                 showEndDate: '',
-                trailer: ''
+                trailer: '',
+                cast: [],
+                director: '',
+                theaterIds: []
             });
             setPoster(null);
+            setShowtimes({});
+            setTicketRates({});
+            setSeatMatrix({});
             document.getElementById('poster').value = '';
         } catch (error) {
             console.error('Error adding movie: ', error);
@@ -146,29 +176,93 @@ const AddMovie = () => {
                         <input type="url" id="trailer" name="trailer" value={movie.trailer} onChange={handleChange} required />
                     </div>
                     <div className="form-group">
-                        <h3>Showtimes</h3>
-                        <div>
-                            <label htmlFor="firstShow">First Show:</label>
-                            <input type="datetime-local" id="firstShow" name="showtimes.firstShow" value={movie.showtimes.firstShow} onChange={handleChange} required />
-                        </div>
-                        <div>
-                            <label htmlFor="matinee">Matinee:</label>
-                            <input type="datetime-local" id="matinee" name="showtimes.matinee" value={movie.showtimes.matinee} onChange={handleChange} required />
-                        </div>
-                        <div>
-                            <label htmlFor="lastShow">Last Show:</label>
-                            <input type="datetime-local" id="lastShow" name="showtimes.lastShow" value={movie.showtimes.lastShow} onChange={handleChange} required />
-                        </div>
+                        <label htmlFor="director">Director:</label>
+                        <input type="text" id="director" name="director" value={movie.director} onChange={handleChange} required />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="showEndDate">Show End Date:</label>
-                        <input type="date" id="showEndDate" name="showEndDate" value={movie.showEndDate} onChange={handleChange} required />
+                        <label htmlFor="cast">Cast (comma-separated):</label>
+                        <input type="text" id="cast" name="cast" value={movie.cast.join(', ')} onChange={handleChange} required />
                     </div>
+                    <div className="form-group">
+                        <label>Theaters:</label>
+                        <div className="checkbox-group">
+                            {theaters.map(theater => (
+                                <label key={theater.id} className="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        value={theater.id}
+                                        checked={movie.theaterIds.includes(theater.id)}
+                                        onChange={handleTheaterChange}
+                                    />
+                                    {theater['theatre-name']}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    {movie.theaterIds.map(theaterId => (
+                        <div key={theaterId} className="theater-details">
+                            <h3>Details for Theater: {theaters.find(theater => theater.id === theaterId)['theatre-name']}</h3>
+                            
+                            <div className="form-group">
+                                <label>Showtimes (comma-separated Timestamps):</label>
+                                <input 
+                                    type="text" 
+                                    value={showtimes[theaterId]?.join(', ')} 
+                                    onChange={e => setShowtimes(prev => ({
+                                        ...prev,
+                                        [theaterId]: e.target.value.split(',').map(time => Timestamp.fromDate(new Date(time.trim())))
+                                    }))} 
+                                    required 
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Ticket Rates (comma-separated Elite,Premium,Standard):</label>
+                                <input 
+                                    type="text" 
+                                    value={ticketRates[theaterId]?.join(', ')} 
+                                    onChange={e => setTicketRates(prev => ({
+                                        ...prev,
+                                        [theaterId]: e.target.value.split(',').map(rate => parseFloat(rate.trim()))
+                                    }))} 
+                                    required 
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Seat Matrix (comma-separated Rows and Columns):</label>
+                                <input 
+                                    type="text" 
+                                    value={seatMatrix[theaterId]?.rows?.join(', ') || ''} 
+                                    onChange={e => setSeatMatrix(prev => ({
+                                        ...prev,
+                                        [theaterId]: {
+                                            rows: e.target.value.split(',').map(num => parseInt(num.trim())),
+                                            columns: prev[theaterId]?.columns || []
+                                        }
+                                    }))} 
+                                    required 
+                                />
+                                <input 
+                                    type="text" 
+                                    value={seatMatrix[theaterId]?.columns?.join(', ') || ''} 
+                                    onChange={e => setSeatMatrix(prev => ({
+                                        ...prev,
+                                        [theaterId]: {
+                                            columns: e.target.value.split(',').map(num => parseInt(num.trim())),
+                                            rows: prev[theaterId]?.rows || []
+                                        }
+                                    }))} 
+                                    required 
+                                />
+                            </div>
+                        </div>
+                    ))}
                     <div className="form-group">
                         <label htmlFor="poster">Poster:</label>
-                        <input type="file" id="poster" name="poster" accept="image/*" onChange={handlePosterChange} required />
+                        <input type="file" id="poster" name="poster" onChange={handlePosterChange} required />
                     </div>
-                    <button type="submit" className="btn-submit">Add Movie</button>
+                    <button type="submit">Add Movie</button>
                 </form>
             </div>
             <Footer />
