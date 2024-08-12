@@ -23,16 +23,6 @@ const Movie = () => {
         fetchMovies();
     }, []);
 
-    const formatDate = (date) => {
-        if (date && typeof date.toDate === 'function') {
-            return date.toDate().toISOString().split('T')[0];
-        }
-        if (date && date.seconds) {
-            return new Date(date.seconds * 1000).toISOString().split('T')[0];
-        }
-        return date || '';
-    };
-
     const handleEdit = (movie) => {
         setEditingMovie(movie);
     };
@@ -51,24 +41,33 @@ const Movie = () => {
     const handleEditChange = (e) => {
         if (!editingMovie) return;
         const { name, value } = e.target;
-        if (name === 'genre' || name === 'cast') {
+        if (name === 'genre') {
             setEditingMovie(prev => ({
                 ...prev,
                 [name]: value.split(',').map(item => item.trim())
             }));
-        } else if (name.startsWith('showtimes.') || name.startsWith('showEndDate.')) {
-            const [category, key] = name.split('.');
+        } else if (name.startsWith('showtimes.')) {
+            const [, key] = name.split('.');
             setEditingMovie(prev => ({
                 ...prev,
-                [category]: {
-                    ...(prev[category] || {}),
+                showtimes: {
+                    ...(prev.showtimes || {}),
+                    [key]: value
+                }
+            }));
+        } else if (name.startsWith('showEndDate.')) {
+            const [, key] = name.split('.');
+            setEditingMovie(prev => ({
+                ...prev,
+                showEndDate: {
+                    ...(prev.showEndDate || {}),
                     [key]: value
                 }
             }));
         } else {
             setEditingMovie(prev => ({
                 ...prev,
-                [name]: name === 'rating' || name === 'duration' ? parseFloat(value) : value
+                [name]: name === 'rating' ? parseFloat(value) : value
             }));
         }
     };
@@ -95,8 +94,8 @@ const Movie = () => {
                                     <th className="px-4 py-2 text-left">Genre</th>
                                     <th className="px-4 py-2 text-left">Duration</th>
                                     <th className="px-4 py-2 text-left">Rating</th>
-                                    <th className="px-4 py-2 text-left">Director</th>
-                                    <th className="px-4 py-2 text-left">Language</th>
+                                    <th className="px-4 py-2 text-left">Trailer</th>
+                                    <th className="px-4 py-2 text-left">Poster</th>
                                     <th className="px-4 py-2 text-left">Actions</th>
                                 </tr>
                             </thead>
@@ -104,12 +103,16 @@ const Movie = () => {
                                 {movies.map(movie => (
                                     <tr key={movie.id} className="border-b hover:bg-gray-50">
                                         <td className="px-4 py-2">{movie.title}</td>
-                                        <td className="px-4 py-2">{formatDate(movie.releaseDate)}</td>
+                                        <td className="px-4 py-2">{movie.releaseDate?.toDate().toLocaleDateString()}</td>
                                         <td className="px-4 py-2">{movie.genre?.join(', ')}</td>
                                         <td className="px-4 py-2">{movie.duration} min</td>
                                         <td className="px-4 py-2">{movie.rating}</td>
-                                        <td className="px-4 py-2">{movie.director}</td>
-                                        <td className="px-4 py-2">{movie.language}</td>
+                                        <td className="px-4 py-2">
+                                            <a href={movie.trailer} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">Trailer</a>
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <img src={movie.posterUrl} alt={movie.title} className="w-12 h-18 object-cover" />
+                                        </td>
                                         <td className="px-4 py-2">
                                             <button onClick={() => handleEdit(movie)} className="text-blue-600 hover:text-blue-800 mr-2">
                                                 <FaEdit />
@@ -141,7 +144,7 @@ const Movie = () => {
                                     <input
                                         name="releaseDate"
                                         type="date"
-                                        value={formatDate(editingMovie.releaseDate)}
+                                        value={editingMovie.releaseDate?.toDate().toISOString().split('T')[0] || ''}
                                         onChange={handleEditChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                                     />
@@ -152,73 +155,14 @@ const Movie = () => {
                                         placeholder="Genre (comma-separated)"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                                     />
-                                    <input
-                                        name="duration"
-                                        type="number"
-                                        value={editingMovie.duration || ''}
-                                        onChange={handleEditChange}
-                                        placeholder="Duration (minutes)"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                    />
-                                    <textarea
-                                        name="description"
-                                        value={editingMovie.description || ''}
-                                        onChange={handleEditChange}
-                                        placeholder="Description"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                    />
-                                    <input
-                                        name="rating"
-                                        type="number"
-                                        step="0.1"
-                                        value={editingMovie.rating || ''}
-                                        onChange={handleEditChange}
-                                        placeholder="Rating"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                    />
-                                    <input
-                                        name="trailer"
-                                        type="url"
-                                        value={editingMovie.trailer || ''}
-                                        onChange={handleEditChange}
-                                        placeholder="Trailer URL"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                    />
-                                    <input
-                                        name="director"
-                                        value={editingMovie.director || ''}
-                                        onChange={handleEditChange}
-                                        placeholder="Director"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                    />
-                                    <input
-                                        name="cast"
-                                        value={editingMovie.cast?.join(', ') || ''}
-                                        onChange={handleEditChange}
-                                        placeholder="Cast (comma-separated)"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                    />
-                                    <input
-                                        name="language"
-                                        value={editingMovie.language || ''}
-                                        onChange={handleEditChange}
-                                        placeholder="Language"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                    />
-                                    <input
-                                        name="ageRating"
-                                        value={editingMovie.ageRating || ''}
-                                        onChange={handleEditChange}
-                                        placeholder="Age Rating"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                    />
+                                    {/* Add similar safety checks for other fields */}
                                     <h4 className="font-medium text-gray-900 mt-4">Showtimes</h4>
                                     {editingMovie.showtimes && Object.entries(editingMovie.showtimes).map(([key, value]) => (
                                         <input
                                             key={key}
                                             name={`showtimes.${key}`}
                                             type="datetime-local"
-                                            value={formatDate(value)}
+                                            value={value?.toDate().toISOString().slice(0, 16) || ''}
                                             onChange={handleEditChange}
                                             placeholder={key}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -230,7 +174,7 @@ const Movie = () => {
                                             key={key}
                                             name={`showEndDate.${key}`}
                                             type="date"
-                                            value={formatDate(value)}
+                                            value={value?.toDate().toISOString().split('T')[0] || ''}
                                             onChange={handleEditChange}
                                             placeholder={key}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"

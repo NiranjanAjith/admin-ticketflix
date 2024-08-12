@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import './styles.css';
+import './index.css';
+
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -20,8 +22,8 @@ const PrivateRoute = ({ children }) => {
 
 function App() {
   return (
+    <>
     <Router>
-      <div className="app">
         <Routes>
           <Route path="/login" element={<Login />} />
 
@@ -104,8 +106,8 @@ function App() {
             }
           />
         </Routes>
-      </div>
     </Router>
+    </>
   );
 }
 
