@@ -56,7 +56,7 @@ function QRCodeGenerator() {
 
     const drawTicket = (pdf, ticket, qrDataUrl, startX, startY, ticketWidth, ticketHeight, totalAmount, totalTickets) => {
         // Calculate individual ticket amount
-        const ticketAmount = (totalAmount / totalTickets).toFixed(2);
+        const ticketAmount = totalAmount.toFixed(2);
 
         // Draw background (gradient approximation)
         const gradientColors = [
@@ -96,10 +96,7 @@ function QRCodeGenerator() {
         pdf.setFontSize(12);
         pdf.text(`Amount: ${ticketAmount} Rs.`, startX + 15, startY + 60);
 
-        // Add total amount and ticket count
-        pdf.setFontSize(8);
-        pdf.text(`Total: ${totalAmount} Rs.(${totalTickets} tickets)`, startX + 15, startY + 70);
-    
+   
         // Column 2
         const column2X = startX + ticketWidth * 0.4;
         const column2Width = ticketWidth * 0.3;
@@ -153,11 +150,7 @@ function QRCodeGenerator() {
         const qrSize = ticketHeight * 0.7;
         pdf.addImage(qrDataUrl, 'PNG', startX + ticketWidth - qrSize - 20, startY + (ticketHeight - qrSize) / 2, qrSize, qrSize);
     
-        // Add ticket number out of total
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(10);
-        pdf.text(`Ticket ${ticket.ticketNumber} of ${totalTickets}`, startX + ticketWidth - 60, startY + ticketHeight - 10);
-
+  
         // Add shadow effect (approximation)
         pdf.setDrawColor(0, 0, 0);
         pdf.setFillColor(0, 0, 0);
@@ -287,7 +280,7 @@ function QRCodeGenerator() {
                 <input
                     type="number"
                     id="amountPaid"
-                    placeholder='Amount Paid'
+                    placeholder='Price per coupon'
                     value={amountPaid}
                     onChange={(e) => setAmountPaid(e.target.value)}
                     required
