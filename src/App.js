@@ -13,7 +13,7 @@ import AddShowTimes from './pages/AddShowTimes';
 import AddMovie from './pages/AddMovie'
 import AddExecutive from './pages/AddExecutive';
 import Executive from './pages/Executive';
-import QRCodeGenerator from './pages/genQR';
+import QRCodeGenerator from './pages/QRCodeGenerator';
 
 const PrivateRoute = ({ children }) => {
   return auth.currentUser ? children : <Navigate to="/login" />;
