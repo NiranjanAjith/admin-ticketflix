@@ -4,7 +4,6 @@ import './styles.css';
 import './index.css';
 
 
-
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import { auth } from './firebase';
