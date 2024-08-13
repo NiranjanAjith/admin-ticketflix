@@ -9,7 +9,7 @@ import Dashboard from './pages/Dashboard';
 import { auth } from './firebase';
 import AddTheatre from './pages/AddTheatre';
 import Theatre from './pages/Theatre';
-import Movie from './pages/Movie';
+import Movie from './pages/movie';
 import AddShowTimes from './pages/AddShowTimes';
 import AddMovie from './pages/AddMovie'
 import AddExecutive from './pages/AddExecutive';
