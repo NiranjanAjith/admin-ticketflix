@@ -258,9 +258,9 @@ const Theatre = () => {
                                         <td className="px-4 py-2">{theater.district}</td>
                                         <td className="px-4 py-2">{theater.city}</td>
                                         <td className="px-4 py-2">
-                                            <button onClick={() => handleEdit(theater)} className="text-blue-600 hover:text-blue-800 mr-2">
+                                            {/* <button onClick={() => handleEdit(theater)} className="text-blue-600 hover:text-blue-800 mr-2">
                                                 <FaEdit />
-                                            </button>
+                                            </button> */}
                                             <button onClick={() => handleDelete(theater.id)} className="text-red-600 hover:text-red-800">
                                                 <FaTrashAlt />
                                             </button>

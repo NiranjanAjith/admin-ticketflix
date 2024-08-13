@@ -31,7 +31,7 @@ const ExecutiveRegistration = () => {
         email,
         phoneNumber,
         executiveCode,
-        role: 'executive'
+        allow_coupon_generation: false
       });
       navigate('/');
     } catch (error) {

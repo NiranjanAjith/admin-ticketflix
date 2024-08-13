@@ -11,8 +11,7 @@ import { auth } from './firebase';
 import AddTheatre from './pages/AddTheatre';
 import Theatre from './pages/Theatre';
 import Movie from './pages/Movie';
-import AddMovie from './pages/AddMovie'
-import AddExecutive from './pages/AddExecutive';
+import AddMovie from './pages/AddMovie';
 import Executive from './pages/executive/Executive';
 import QRCodeGenerator from './pages/executive/QRCodeGenerator';
 import TransactionForm from "./pages/executive/TransactionForm";
@@ -79,15 +78,6 @@ function App() {
             element={
               <PrivateRoute>
                 <Executive />
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path='/add-executive'
-            element={
-              <PrivateRoute>
-                <AddExecutive />
               </PrivateRoute>
             }
           />

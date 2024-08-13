@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   collection,
   updateDoc,
   doc,
   addDoc,
   getDocs,
+  query,
+  where
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { firestore, storage } from "../../firebase";
@@ -13,30 +15,38 @@ import Footer from "../../components/Footer";
 import { sha256 } from "js-sha256";
 import QRCode from "qrcode";
 import { jsPDF } from "jspdf";
+import { AuthContext } from "../../context/AuthContext"; // Ensure this path is correct
+
+
 
 function QRCodeGenerator() {
   const [numCoupons, setNumCoupons] = useState("");
   const [pdfUrl, setPdfUrl] = useState(null);
   const [amountPaid, setAmountPaid] = useState("");
   const [executiveCode, setExecutiveCode] = useState("");
-  const [ticketType, setTicketType] = useState("");
   const [tickets, setTickets] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [executives, setExecutives] = useState([]);
+  const [allowCouponGeneration, setAllowCouponGeneration] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
-    const fetchExecutives = async () => {
-      const executivesRef = collection(firestore, "executives");
-      const executivesSnapshot = await getDocs(executivesRef);
-      const executivesList = executivesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setExecutives(executivesList);
+    const fetchExecutiveData = async () => {
+      if (user) {
+        const executivesRef = collection(firestore, "executives");
+        const q = query(executivesRef, where("email", "==", user.email));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const executiveData = querySnapshot.docs[0].data();
+          setExecutiveCode(executiveData.executiveCode);
+          setAllowCouponGeneration(executiveData.allow_coupon_generation);
+        }
+        setLoading(false);
+      }
     };
 
-    fetchExecutives();
-  }, []);
+    fetchExecutiveData();
+  }, [user]);
 
   const saveQRCodeToStorage = async (qrDataUrl, ticketId) => {
     const storageRef = ref(storage, `qrcodes/${ticketId}.png`);
@@ -92,22 +102,19 @@ function QRCodeGenerator() {
 
     // Column 1
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(10);
-    pdf.setTextColor(255, 255, 255);
-    pdf.text(`Type: ${ticket.class}`, startX + 10, startY + 30); // 20
-
     pdf.setFontSize(24);
+    pdf.setTextColor(255, 255, 255);
     pdf.text("TICKET FLIX", startX + 10, startY + 40);
 
     pdf.setFillColor(79, 70, 229); // indigo-600
     pdf.roundedRect(startX + 10, startY + 50, ticketWidth * 0.3, 15, 6, 6, "F");
     pdf.setFontSize(12);
-    pdf.text(`Amount: Rs. ${ticket["amount-paid"]}`, startX + 15, startY + 59); // 60
+    pdf.text(`Amount: Rs. ${ticket["amount-paid"]}`, startX + 15, startY + 59);
 
     // Column 2
     const column2X = startX + ticketWidth * 0.38;
     pdf.setFontSize(10);
-    pdf.text("Coupon Code", column2X, startY + 18.5); // 15
+    pdf.text("Coupon Code", column2X, startY + 18.5);
     pdf.setFillColor(255, 255, 255);
     pdf.setTextColor(0, 128, 128);
     pdf.roundedRect(
@@ -124,7 +131,7 @@ function QRCodeGenerator() {
 
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(10);
-    pdf.text("Executive ID", column2X, startY + 49.5); // 50
+    pdf.text("Executive ID", column2X, startY + 49.5);
     pdf.setFillColor(255, 255, 255);
     pdf.setTextColor(0, 128, 128);
     pdf.roundedRect(
@@ -137,7 +144,7 @@ function QRCodeGenerator() {
       "F"
     );
     pdf.setFontSize(12);
-    pdf.text(ticket.executiveCode, column2X + 4, startY + 61.25); // 60
+    pdf.text(ticket.executiveCode, column2X + 4, startY + 61.25);
 
     // Column 3 (QR Code)
     const qrSize = ticketHeight * 0.7;
@@ -183,7 +190,6 @@ function QRCodeGenerator() {
     );
 
     ticketsWithQR.forEach((item, index) => {
-      // const pageIndex = Math.floor(index / ticketsPerPage);
       const ticketIndex = index % ticketsPerPage;
 
       if (ticketIndex === 0 && index > 0) {
@@ -209,19 +215,14 @@ function QRCodeGenerator() {
     setPdfUrl(pdfUrl);
   };
 
-  const createNewTicket = async (amt, execCode, type) => {
+  const createNewTicket = async (amt) => {
     try {
       const ticketsRef = collection(firestore, "coupon");
       const newTicket = {
-        // FIXEME: field names
         "amount-paid": amt,
-        coupon_code: `FREE${Math.random()
-          .toString(36)
-          .substring(7)
-          .toUpperCase()}`,
+        coupon_code: `FREE${Math.random().toString(36).substring(7).toUpperCase()}`,
         "user-id": "",
-        executiveCode: execCode,
-        class: type,
+        executiveCode: executiveCode,
       };
 
       const docRef = await addDoc(ticketsRef, newTicket);
@@ -238,17 +239,10 @@ function QRCodeGenerator() {
     const totalAmount = parseFloat(amountPaid);
 
     try {
-      const newTicketsNeeded = Math.max(
-        0,
-        parseInt(numCoupons) - tickets.length
-      );
+      const newTicketsNeeded = Math.max(0, parseInt(numCoupons) - tickets.length);
       const newTickets = [];
       for (let i = 0; i < newTicketsNeeded; i++) {
-        const newTicket = await createNewTicket(
-          amountPaid,
-          executiveCode,
-          ticketType
-        );
+        const newTicket = await createNewTicket(amountPaid);
         newTickets.push(newTicket);
       }
       setTickets((prevTickets) => [...prevTickets, ...newTickets]);
@@ -279,121 +273,92 @@ function QRCodeGenerator() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (
-      isNaN(parseFloat(amountPaid)) ||
-      !executiveCode ||
-      !numCoupons ||
-      !ticketType
-    ) {
+    if (isNaN(parseFloat(amountPaid)) || !numCoupons || !executiveCode) {
       alert("Please provide valid inputs for all fields.");
       return;
     }
     await processCoupons();
   };
 
-  return (
-    <div className="h-screen">
-      <Header />
-      <div style={{ padding: "60px 20px" }} className="h-[77.8vh]">
-        <input
-          type="number"
-          value={numCoupons}
-          onChange={(e) => setNumCoupons(e.target.value)}
-          placeholder="Number of coupons"
-          style={{
-            marginBottom: "10px",
-            display: "block",
-            width: "100%",
-            padding: "8px",
-          }}
-        />
-        <input
-          type="number"
-          id="amountPaid"
-          placeholder="Amount Paid"
-          value={amountPaid}
-          onChange={(e) => setAmountPaid(e.target.value)}
-          required
-          style={{
-            marginBottom: "10px",
-            display: "block",
-            width: "100%",
-            padding: "8px",
-          }}
-        />
-        <select
-          id="executiveCode"
-          value={executiveCode}
-          onChange={(e) => setExecutiveCode(e.target.value)}
-          required
-          style={{
-            marginBottom: "10px",
-            display: "block",
-            width: "100%",
-            padding: "8px",
-          }}
-        >
-          <option value="">Select an Executive</option>
-          {executives.map((executive) => (
-            <option
-              key={executive.executiveCode}
-              value={executive.executiveCode}
-            >
-              {executive.name} ({executive.executiveCode})
-            </option>
-          ))}
-        </select>
-        <select
-          id="ticketType"
-          value={ticketType}
-          onChange={(e) => setTicketType(e.target.value)}
-          required
-          style={{
-            marginBottom: "10px",
-            display: "block",
-            width: "100%",
-            padding: "8px",
-          }}
-        >
-          <option value="">Select Ticket Type</option>
-          <option value="Standard">Standard</option>
-          <option value="Luxury">Luxury</option>
-        </select>
-        <button
-          onClick={handleSubmit}
-          disabled={isGenerating}
-          style={{
-            marginBottom: "10px",
-            display: "block",
-            width: "100%",
-            padding: "10px",
-            backgroundColor: "#007bff",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          {isGenerating ? "Generating..." : "Generate QR Codes"}
-        </button>
-        {pdfUrl && (
-          <a
-            href={pdfUrl}
-            download="qr_codes.pdf"
-            style={{
-              display: "block",
-              textAlign: "center",
-              padding: "10px",
-              backgroundColor: "#28a745",
-              color: "white",
-              textDecoration: "none",
-              borderRadius: "4px",
-            }}
-          >
-            Download QR Codes PDF
-          </a>
-        )}
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-100">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <p className="text-center">Loading...</p>
+          </div>
+        </main>
+        <Footer />
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      <Header />
+      <main className="flex-grow container mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold mb-6">Generate QR Codes</h2>
+          {allowCouponGeneration ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="numCoupons" className="block text-sm font-medium text-gray-700">Number of Coupons</label>
+                <input
+                  type="number"
+                  id="numCoupons"
+                  value={numCoupons}
+                  onChange={(e) => setNumCoupons(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="amountPaid" className="block text-sm font-medium text-gray-700">Amount Paid</label>
+                <input
+                  type="number"
+                  id="amountPaid"
+                  value={amountPaid}
+                  onChange={(e) => setAmountPaid(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="executiveCode" className="block text-sm font-medium text-gray-700">Executive Code</label>
+                <input
+                  type="text"
+                  id="executiveCode"
+                  value={executiveCode}
+                  readOnly
+                  className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isGenerating}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200"
+              >
+                {isGenerating ? "Generating..." : "Generate QR Codes"}
+              </button>
+            </form>
+          ) : (
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+              <p className="font-bold">Coupon Generation Not Allowed</p>
+              <p>You are not currently authorized to generate coupons. Please contact your administrator for assistance.</p>
+            </div>
+          )}
+          {pdfUrl && (
+            <a
+              href={pdfUrl}
+              download="qr_codes.pdf"
+              className="mt-4 block text-center py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-200"
+            >
+              Download QR Codes PDF
+            </a>
+          )}
+        </div>
+      </main>
       <Footer />
     </div>
   );

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../../firebase'; // Adjust this import based on your Firebase setup
+import React, { useState, useEffect, useContext } from 'react';
+import { addDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import { AuthContext } from '../../context/AuthContext'; // Make sure this path is correct
 
 const CouponTransactionForm = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,28 @@ const CouponTransactionForm = () => {
     'transaction-id': ''
   });
   const [message, setMessage] = useState({ type: '', content: '' });
+  const [loading, setLoading] = useState(true);
+  const { user } = useContext(AuthContext);
+
+  useEffect(() => {
+    const fetchExecutiveId = async () => {
+      if (user) {
+        const executivesRef = collection(db, 'executives');
+        const q = query(executivesRef, where('email', '==', user.email));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const executiveData = querySnapshot.docs[0].data();
+          setFormData(prevState => ({
+            ...prevState,
+            'executive-id': executiveData.executiveCode
+          }));
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchExecutiveId();
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,7 +49,6 @@ const CouponTransactionForm = () => {
     e.preventDefault();
     setMessage({ type: '', content: '' });
 
-    // Basic validation
     if (formData['transaction-id'].length !== 5 || !/^\d+$/.test(formData['transaction-id'])) {
       setMessage({ type: 'error', content: 'Transaction ID must be exactly 5 digits.' });
       return;
@@ -35,17 +57,33 @@ const CouponTransactionForm = () => {
     try {
       await addDoc(collection(db, 'coupon_transaction'), formData);
       setMessage({ type: 'success', content: 'Transaction submitted successfully!' });
-      setFormData({
+      setFormData(prevState => ({
+        ...prevState,
         'coupon-id': '',
-        'executive-id': '',
         'name': '',
         'phone': '',
         'transaction-id': ''
-      });
+      }));
     } catch (error) {
       setMessage({ type: 'error', content: `Error submitting transaction: ${error.message}` });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="px-4 py-5 sm:p-6">
+              <p className="text-center">Loading...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -79,9 +117,8 @@ const CouponTransactionForm = () => {
                   name="executive-id"
                   id="executive-id"
                   value={formData['executive-id']}
-                  onChange={handleChange}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  readOnly
+                  className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm"
                 />
               </div>
               <div>

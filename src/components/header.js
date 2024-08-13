@@ -53,7 +53,7 @@ const Header = () => {
           </h1>
           <nav className="w-full md:w-auto">
             <ul className="flex flex-wrap justify-center md:justify-end space-x-2 md:space-x-4">
-              {isAdmin && (
+              {isAdmin ? (
                 <>
                   <li>
                     <Link to="/" className="btn-nav">
@@ -86,26 +86,26 @@ const Header = () => {
                       </Link>
                     </li>
                   )}
-                  {place === "/executive" ? (
-                    <li>
-                      <Link to="/add-executive" className="btn-nav">
-                        <FaPlus className="mr-1" /> Add Executive
-                      </Link>
-                    </li>
-                  ) : (
-                    <li>
-                      <Link to="/executive" className="btn-nav">
-                        <FaUserTie className="mr-1" /> Executives
-                      </Link>
-                    </li>
-                  )}
+                  <li>
+                    <Link to="/executive" className="btn-nav">
+                      <FaUserTie className="mr-1" /> Executives
+                    </Link>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <Link to="/coupons" className="btn-nav">
+                      <FaTicketAlt className="mr-1" /> Coupons
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/transaction-form" className="btn-nav">
+                      <FaPlus className="mr-1" /> Add Transaction
+                    </Link>
+                  </li>
                 </>
               )}
-              <li>
-                <Link to="/coupons" className="btn-nav">
-                  <FaTicketAlt className="mr-1" /> Coupons
-                </Link>
-              </li>
               <li>
                 <button onClick={handleLogout} className="btn-nav">
                   <FaSignOutAlt className="mr-1" /> Logout
