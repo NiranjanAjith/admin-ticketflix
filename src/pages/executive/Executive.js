@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { firestore } from '../firebase';
+import { firestore } from '../../firebase';
 import { FaEdit, FaTrashAlt } from 'react-icons/fa';
-import './Dashboard.css';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import "../styles/Dashboard.css";
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 const Executive = () => {
     const [executives, setExecutives] = useState([]);

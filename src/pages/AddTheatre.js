@@ -4,7 +4,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import './Dashboard.css';
+import "./styles/Dashboard.css";
 import { FaPlus, FaTrash } from 'react-icons/fa';
 
 const keralaDistricts = [

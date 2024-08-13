@@ -4,7 +4,7 @@ import { firestore, storage } from '../firebase';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import './Dashboard.css';
+import './styles/Dashboard.css';
 
 const AddMovie = () => {
     const [movie, setMovie] = useState({

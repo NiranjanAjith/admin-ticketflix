@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { collection, updateDoc, doc, addDoc, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { firestore, storage } from '../firebase';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import { firestore, storage } from '../../firebase';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 import { sha256 } from 'js-sha256';
 import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';

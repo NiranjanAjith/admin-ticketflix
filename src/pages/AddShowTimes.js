@@ -4,7 +4,7 @@ import { collection, doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { firestore } from '../firebase';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import './Dashboard.css';
+import "./styles/Dashboard.css";
 
 const AddShowtimes = () => {
     const { movieId } = useParams();
