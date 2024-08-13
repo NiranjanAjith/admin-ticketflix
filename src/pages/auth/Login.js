@@ -1,8 +1,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
+import { auth } from '../../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../context/AuthContext';
 import { Film, User, Lock, ChevronRight } from 'lucide-react';
 
 const Login = () => {
@@ -85,9 +85,9 @@ const Login = () => {
                 <ChevronRight className="ml-2" size={18} />
               </button>
             </form>
-            <div className="mt-6 text-center">
-              <a href="#" className="text-sm text-red-400 hover:text-red-300 transition-colors duration-300">Forgot password?</a>
-            </div>
+            {/* TODO: <div className="mt-6 text-center">
+              <a href="#forgot" className="text-sm text-red-400 hover:text-red-300 transition-colors duration-300">Forgot password?</a>
+            </div> */}
           </div>
         </div>
       </div>
