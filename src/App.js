@@ -4,17 +4,16 @@ import './styles.css';
 import './index.css';
 
 
-import Login from './pages/auth/Login';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import { auth } from './firebase';
 import AddTheatre from './pages/AddTheatre';
 import Theatre from './pages/Theatre';
 import Movie from './pages/Movie';
-import AddShowTimes from './pages/AddShowTimes';
 import AddMovie from './pages/AddMovie'
 import AddExecutive from './pages/AddExecutive';
-import Executive from './pages/executive/Executive';
-import QRCodeGenerator from "./pages/executive/QRCodeGenerator";
+import Executive from './pages/Executive';
+import QRCodeGenerator from './pages/QRCodeGenerator';
 
 const PrivateRoute = ({ children }) => {
   return auth.currentUser ? children : <Navigate to="/login" />;
@@ -88,14 +87,6 @@ function App() {
             }
           />
 
-          <Route
-            path='/add-showtimes/:movieId'
-            element={
-              <PrivateRoute>
-                <AddShowTimes />
-              </PrivateRoute>
-            }
-          />
 
           <Route
             path='/coupons'
