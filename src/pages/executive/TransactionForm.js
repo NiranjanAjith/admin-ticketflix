@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase'; // Adjust this import based on your Firebase setup
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import { db } from '../../firebase'; // Adjust this import based on your Firebase setup
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 const CouponTransactionForm = () => {
   const [formData, setFormData] = useState({
