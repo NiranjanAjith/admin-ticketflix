@@ -94,42 +94,37 @@ function QRCodeGenerator() {
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(10);
       pdf.setTextColor(255, 255, 255);
-      pdf.text(`Type: ${ticket.class}`, startX + 10, startY + 20);
+      pdf.text(`Type: ${ticket.class}`, startX + 10, startY + 30); // 20
 
       pdf.setFontSize(24);
       pdf.text("TICKET FLIX", startX + 10, startY + 40);
 
       pdf.setFillColor(79, 70, 229); // indigo-600
       pdf.roundedRect(
-        startX + 10,
-        startY + 50,
-        ticketWidth * 0.3,
-        15,
-        7.5,
-        7.5,
-        "F"
+        startX + 10, startY + 50,
+        ticketWidth * 0.3, 15, 6, 6, "F"
       );
       pdf.setFontSize(12);
-      pdf.text(`Amount: ₹${ticket["amount-paid"]}`, startX + 15, startY + 60);
+      pdf.text(`Amount: Rs. ${ticket["amount-paid"]}`, startX + 15, startY + 59); // 60
 
       // Column 2
       const column2X = startX + ticketWidth * 0.38;
       pdf.setFontSize(10);
-      pdf.text("Coupon Code", column2X, startY + 15);
+      pdf.text("Coupon Code", column2X, startY + 18.5); // 15
       pdf.setFillColor(255, 255, 255);
       pdf.setTextColor(0, 128, 128);
-      pdf.roundedRect(column2X, startY + 20, ticketWidth * 0.3 - 20, 15, 3, 3, "F");
+      pdf.roundedRect(column2X, startY + 21.3, ticketWidth * 0.3 - 20, 15, 3, 3, "F");
       pdf.setFontSize(12);
-      pdf.text(ticket.coupon_code, column2X + 5, startY + 30);
+      pdf.text(ticket.coupon_code, column2X + 4, startY + 30.4);
 
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(10);
-      pdf.text("Executive ID", column2X, startY + 50);
+      pdf.text("Executive ID", column2X, startY + 49.5); // 50
       pdf.setFillColor(255, 255, 255);
       pdf.setTextColor(0, 128, 128);
       pdf.roundedRect(column2X, startY + 52, ticketWidth * 0.3 - 20, 15, 3, 3, "F");
       pdf.setFontSize(12);
-      pdf.text(ticket.executiveCode, column2X + 5, startY + 60);
+      pdf.text(ticket.executiveCode, column2X + 4, startY + 61.25); // 60
 
       // Column 3 (QR Code)
       const qrSize = ticketHeight * 0.7;

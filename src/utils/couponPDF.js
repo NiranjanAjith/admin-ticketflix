@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import QRCode from 'qrcode';
+// import QRCode from 'qrcode';
 
 
 const drawTicket = (pdf, ticket, qrDataUrl, startX, startY, ticketWidth, ticketHeight, amount, totalTickets) => {
@@ -31,7 +31,7 @@ const drawTicket = (pdf, ticket, qrDataUrl, startX, startY, ticketWidth, ticketH
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
     pdf.setTextColor(255, 255, 255);
-    pdf.text(`Type: ${ticket.class}`, startX + 10, startY + 20);
+    pdf.text(`Type: ${ticket.class}`, startX + 10, startY + 32);
 
     pdf.setFontSize(24);
     pdf.text("TICKET FLIX", startX + 10, startY + 40);
@@ -39,11 +39,11 @@ const drawTicket = (pdf, ticket, qrDataUrl, startX, startY, ticketWidth, ticketH
     pdf.setFillColor(79, 70, 229); // indigo-600
     pdf.roundedRect(startX + 10, startY + 50, ticketWidth * 0.3, 15, 7.5, 7.5, 'F');
     pdf.setFontSize(12);
-    pdf.text(`Amount: ${amount.toFixed(2)} Rs.`, startX + 15, startY + 60);
+    pdf.text(`Amount: Rs.${amount.toFixed(2)}`, startX + 17, startY + 59);
 
     // Add total amount and ticket count
-    pdf.setFontSize(8);
-    pdf.text(`Total: ${amount} Rs.(${totalTickets} tickets)`, startX + 15, startY + 70);
+    // pdf.setFontSize(8);
+    // pdf.text(`Total: ${amount} Rs.(${totalTickets} tickets)`, startX + 15, startY + 70);
 
     // Column 2
     const column2X = startX + ticketWidth * 0.4;
@@ -56,14 +56,14 @@ const drawTicket = (pdf, ticket, qrDataUrl, startX, startY, ticketWidth, ticketH
     // Coupon Code
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(labelFontSize);
-    pdf.text("Coupon Code", column2X, startY + 20);
+    pdf.text("Coupon Code", column2X, startY + 23); //22
 
     pdf.setFillColor(255, 255, 255);
-    pdf.roundedRect(column2X, startY + 23, column2Width, boxHeight, 3, 3, 'F');
+    pdf.roundedRect(column2X, startY + 24, column2Width, boxHeight, 3, 3, 'F');
 
     pdf.setTextColor(0, 128, 128);
     pdf.setFontSize(contentFontSize);
-    const couponCode = ticket.coupon_code;
+    const couponCode = ticket.coupon_code
     const couponCodeY = startY + 23 + (boxHeight / 2) + (contentFontSize / 4);
     pdf.text(couponCode, column2X + 5, couponCodeY);
 
@@ -79,7 +79,7 @@ const drawTicket = (pdf, ticket, qrDataUrl, startX, startY, ticketWidth, ticketH
     pdf.setFontSize(contentFontSize);
     const executiveCode = ticket.executiveCode;
     const executiveCodeY = startY + 23 + boxHeight + spaceBetweenBoxes + (boxHeight / 2) + (contentFontSize / 4);
-    pdf.text(executiveCode, column2X + 5, executiveCodeY);
+    pdf.text(ticket.executiveCode, column2X + 5, executiveCodeY + 3);
 
     // Add a clipping mask to prevent text overflow
     pdf.saveGraphicsState();
@@ -98,10 +98,10 @@ const drawTicket = (pdf, ticket, qrDataUrl, startX, startY, ticketWidth, ticketH
     const qrSize = ticketHeight * 0.7;
     pdf.addImage(qrDataUrl, 'PNG', startX + ticketWidth - qrSize - 20, startY + (ticketHeight - qrSize) / 2, qrSize, qrSize);
 
-    // Add ticket number out of total
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(10);
-    pdf.text(`Ticket ${ticket.ticketNumber} of ${totalTickets}`, startX + ticketWidth - 60, startY + ticketHeight - 10);
+    // // Add ticket number out of total
+    // pdf.setTextColor(255, 255, 255);
+    // pdf.setFontSize(10);
+    // pdf.text(`Ticket ${ticket.ticketNumber} of ${totalTickets}`, startX + ticketWidth - 60, startY + ticketHeight - 10);
 
     // Add shadow effect (approximation)
     pdf.setDrawColor(0, 0, 0);
