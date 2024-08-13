@@ -15,7 +15,7 @@ import AddMovie from './pages/AddMovie'
 import AddExecutive from './pages/AddExecutive';
 import Executive from './pages/executive/Executive';
 import QRCodeGenerator from './pages/executive/QRCodeGenerator';
-import TransactionForm from './pages/TransactionForm';
+import TransactionForm from "./pages/executive/TransactionForm";
 
 
 
