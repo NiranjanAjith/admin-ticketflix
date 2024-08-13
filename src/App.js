@@ -5,6 +5,7 @@ import './index.css';
 
 
 import Login from './pages/auth/Login';
+import ExecutiveRegistration from './pages/auth/ExecutiveRegistration';
 import Dashboard from './pages/Dashboard';
 import { auth } from './firebase';
 import AddTheatre from './pages/AddTheatre';
@@ -14,6 +15,9 @@ import AddMovie from './pages/AddMovie'
 import AddExecutive from './pages/AddExecutive';
 import Executive from './pages/executive/Executive';
 import QRCodeGenerator from './pages/executive/QRCodeGenerator';
+import TransactionForm from './pages/TransactionForm';
+
+
 
 const PrivateRoute = ({ children }) => {
   return auth.currentUser ? children : <Navigate to="/login" />;
@@ -25,6 +29,7 @@ function App() {
     <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<ExecutiveRegistration />} />
 
           <Route
             path="/"
@@ -84,6 +89,13 @@ function App() {
               <PrivateRoute>
                 <AddExecutive />
               </PrivateRoute>
+            }
+          />
+
+<Route
+            path='/transaction-form'
+            element={
+                <TransactionForm />
             }
           />
 
