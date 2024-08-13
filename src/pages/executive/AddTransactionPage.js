@@ -5,7 +5,7 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { AuthContext } from '../../context/AuthContext'; // Make sure this path is correct
 
-const CouponTransactionForm = () => {
+const AddTransactionPage = () => {
   const [formData, setFormData] = useState({
     'coupon-id': '',
     'executive-id': '',
@@ -55,7 +55,7 @@ const CouponTransactionForm = () => {
     }
 
     try {
-      await addDoc(collection(db, 'coupon_transaction'), formData);
+      await addDoc(collection(db, 'coupons-transaction'), formData);
       setMessage({ type: 'success', content: 'Transaction submitted successfully!' });
       setFormData(prevState => ({
         ...prevState,
@@ -176,4 +176,4 @@ const CouponTransactionForm = () => {
   );
 };
 
-export default CouponTransactionForm;
+export default AddTransactionPage;

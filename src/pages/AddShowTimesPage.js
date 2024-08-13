@@ -5,8 +5,9 @@ import { firestore } from '../firebase';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import "./styles/Dashboard.css";
+import routes from '../routes/constants';
 
-const AddShowtimes = () => {
+const AddShowTimesPage = () => {
     const { movieId } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
@@ -108,7 +109,7 @@ const AddShowtimes = () => {
             setMessage({ type: 'success', content: 'Showtimes added successfully!' });
             
             setTimeout(() => {
-                navigate('/movies'); // Adjust this path as needed
+                navigate(routes.MANAGE_MOVIES);
             }, 2000);
         } catch (error) {
             console.error('Error adding showtimes:', error);
@@ -184,4 +185,4 @@ const AddShowtimes = () => {
     );
 };
 
-export default AddShowtimes;
+export default AddShowTimesPage;

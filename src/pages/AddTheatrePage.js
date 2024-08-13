@@ -32,7 +32,7 @@ const keralaCities = {
 
 const seatTypes = ['standard', 'elite', 'premium'];
 
-const AddTheater = () => {
+const AddTheatrePage = () => {
   const [theater, setTheater] = useState({
     'theatre-name': '',
     description: '',
@@ -458,4 +458,4 @@ Add Theater
 );
 };
 
-export default AddTheater;
+export default AddTheatrePage;

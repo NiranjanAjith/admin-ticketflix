@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { FaPlus, FaTrash } from 'react-icons/fa';
 
-const AddMovie = () => {
+const AddMoviePaeg = () => {
     const [movie, setMovie] = useState({
         title: '',
         description: '',
@@ -379,4 +379,4 @@ const AddMovie = () => {
 );
 };
 
-export default AddMovie;
+export default AddMoviePaeg;

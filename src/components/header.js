@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
-// import { doc, getDoc } from 'firebase/firestore';
 import {
   FaHome,
   FaTheaterMasks,
@@ -12,6 +11,7 @@ import {
   FaPlus,
   FaTicketAlt,
 } from "react-icons/fa";
+import routes from "../routes/constants";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const Header = () => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         // Check if the user's email is in the list of admin emails
-        const adminEmails = ["admin@google.com", "another_admin@example.com"]; // Add your admin emails here
+        const adminEmails = ["admin@ticketflix.in", "developer@ticketflix.com"];
         setIsAdmin(adminEmails.includes(user.email));
       } else {
         setIsAdmin(false);
@@ -35,7 +35,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigate("/login");
+      navigate(routes.ADMIN_LOGIN);
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -56,38 +56,46 @@ const Header = () => {
               {isAdmin ? (
                 <>
                   <li>
-                    <Link to="/" className="btn-nav">
+                    <Link
+                      to={
+                        isAdmin ? routes.ADMIN_DASHBOARD : routes.EXEC_DASHBOARD
+                      }
+                      className={navLinkStyle}
+                    >
                       <FaHome className="mr-1" /> Dashboard
                     </Link>
                   </li>
-                  {place === "/theatre" ? (
+                  {place === routes.MANAGE_THEATRES ? (
                     <li>
-                      <Link to="/add-theatre" className="btn-nav">
+                      <Link to={routes.ADD_THEATRE} className={navLinkStyle}>
                         <FaPlus className="mr-1" /> Add Theater
                       </Link>
                     </li>
                   ) : (
                     <li>
-                      <Link to="/theatre" className="btn-nav">
+                      <Link
+                        to={routes.MANAGE_THEATRES}
+                        className={navLinkStyle}
+                      >
                         <FaTheaterMasks className="mr-1" /> Theaters
                       </Link>
                     </li>
                   )}
-                  {place === "/movie" ? (
+                  {place === routes.MANAGE_MOVIES ? (
                     <li>
-                      <Link to="/add-movie" className="btn-nav">
+                      <Link to={routes.ADD_MOVIE} className={navLinkStyle}>
                         <FaPlus className="mr-1" /> Add Movie
                       </Link>
                     </li>
                   ) : (
                     <li>
-                      <Link to="/movie" className="btn-nav">
+                      <Link to={routes.MANAGE_MOVIES} className={navLinkStyle}>
                         <FaFilm className="mr-1" /> Movies
                       </Link>
                     </li>
                   )}
                   <li>
-                    <Link to="/executive" className="btn-nav">
+                    <Link to={routes.MANAGE_EXECS} className={navLinkStyle}>
                       <FaUserTie className="mr-1" /> Executives
                     </Link>
                   </li>
@@ -95,19 +103,22 @@ const Header = () => {
               ) : (
                 <>
                   <li>
-                    <Link to="/coupons" className="btn-nav">
+                    <Link to={routes.EXEC_COUPON_GEN} className={navLinkStyle}>
                       <FaTicketAlt className="mr-1" /> Coupons
                     </Link>
                   </li>
                   <li>
-                    <Link to="/transaction-form" className="btn-nav">
+                    <Link
+                      to={routes.EXEC_ADD_TRANSACTION}
+                      className={navLinkStyle}
+                    >
                       <FaPlus className="mr-1" /> Add Transaction
                     </Link>
                   </li>
                 </>
               )}
               <li>
-                <button onClick={handleLogout} className="btn-nav">
+                <button onClick={handleLogout} className={navLinkStyle}>
                   <FaSignOutAlt className="mr-1" /> Logout
                 </button>
               </li>
@@ -118,5 +129,7 @@ const Header = () => {
     </header>
   );
 };
+
+const navLinkStyle = "hover:no-underline hover:text-blue-200 transition-all";
 
 export default Header;

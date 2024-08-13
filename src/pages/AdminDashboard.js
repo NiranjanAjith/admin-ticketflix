@@ -4,10 +4,11 @@ import { collection, getDocs } from 'firebase/firestore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-const Dashboard = () => {
+const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // FIXME: No users collection here. Fetch from auth
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -64,4 +65,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;

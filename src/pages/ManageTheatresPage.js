@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, query, limit, startAfter, where } from 'firebase/firestore';
 import { firestore } from '../firebase';
-import { FaEdit, FaTrashAlt, FaChair, FaSearch } from 'react-icons/fa';
+import { FaTrashAlt, FaChair, FaSearch } from 'react-icons/fa'; // FaEdit, 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -30,7 +30,7 @@ const keralaCities = {
   "Wayanad": ["Kalpetta", "Mananthavady", "Sulthan Bathery"]
 };
 
-const Theatre = () => {
+const ManageTheatresPage = () => {
     const [theaters, setTheaters] = useState([]);
     const [editingTheater, setEditingTheater] = useState(null);
     const [cities, setCities] = useState([]);
@@ -40,8 +40,12 @@ const Theatre = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [formErrors, setFormErrors] = useState({});
 
+    const theatresCollection = collection(firestore, "theatres");
+
     useEffect(() => {
         fetchTheaters();
+        // TODO: Check below warning
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -59,14 +63,14 @@ const Theatre = () => {
             let theatersQuery;
             if (searchTerm) {
                 theatersQuery = query(
-                    collection(firestore, 'theatres'),
+                    theatresCollection,
                     where('theatre-name', '>=', searchTerm),
                     where('theatre-name', '<=', searchTerm + '\uf8ff'),
                     limit(THEATRES_PER_PAGE)
                 );
             } else {
                 theatersQuery = query(
-                    collection(firestore, 'theatres'),
+                    theatresCollection,
                     limit(THEATRES_PER_PAGE)
                 );
             }
@@ -89,7 +93,7 @@ const Theatre = () => {
         setLoading(true);
         try {
             const theatersQuery = query(
-                collection(firestore, 'theatres'),
+                theatresCollection,
                 startAfter(lastVisible),
                 limit(THEATRES_PER_PAGE)
             );
@@ -112,10 +116,10 @@ const Theatre = () => {
         fetchTheaters(searchTerm);
     };
 
-    const handleEdit = (theater) => {
-        setEditingTheater(theater);
-        setFormErrors({});
-    };
+    // const handleEdit = (theater) => {
+    //     setEditingTheater(theater);
+    //     setFormErrors({});
+    // };
 
     const validateForm = () => {
         const errors = {};
@@ -452,4 +456,4 @@ const Theatre = () => {
 );
 };
 
-export default Theatre;
+export default ManageTheatresPage;

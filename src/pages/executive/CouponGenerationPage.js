@@ -1,30 +1,25 @@
 import React, { useState, useEffect, useContext } from "react";
 import {
-  collection,
-  updateDoc,
-  doc,
-  addDoc,
-  getDocs,
-  query,
-  where
+  collection, doc,
+  addDoc, updateDoc, getDocs,
+  query, where
 } from "firebase/firestore";
+import QRCode from "qrcode";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { firestore, storage } from "../../firebase";
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
 import { sha256 } from "js-sha256";
-import QRCode from "qrcode";
 import { jsPDF } from "jspdf";
 import { AuthContext } from "../../context/AuthContext"; // Ensure this path is correct
+import Header from "../../components/Header";
+import Footer from "../../components/Footer";
 
 
-
-function QRCodeGenerator() {
+function CouponGeneration() {
   const [numCoupons, setNumCoupons] = useState("");
   const [pdfUrl, setPdfUrl] = useState(null);
-  const [amountPaid, setAmountPaid] = useState("");
+  const [couponAmount, setAmountPaid] = useState("");
   const [executiveCode, setExecutiveCode] = useState("");
-  const [tickets, setTickets] = useState([]);
+  const [coupons, setCoupons] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [allowCouponGeneration, setAllowCouponGeneration] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,8 +52,8 @@ function QRCodeGenerator() {
   };
 
   const updateFirestoreWithQRCodeUrl = async (ticketId, qrCodeUrl) => {
-    const ticketRef = doc(firestore, "coupon", ticketId);
-    await updateDoc(ticketRef, { qrCodeUrl });
+    const couponCollection = doc(firestore, "coupon", ticketId);
+    await updateDoc(couponCollection, { qrCodeUrl });
   };
 
   const drawTicket = (
@@ -215,37 +210,36 @@ function QRCodeGenerator() {
     setPdfUrl(pdfUrl);
   };
 
-  const createNewTicket = async (amt) => {
+  const createCoupon = async (amt) => {
     try {
-      const ticketsRef = collection(firestore, "coupon");
-      const newTicket = {
+      const couponsCollection = collection(firestore, "coupons");
+      const couponData = {
         "amount-paid": amt,
-        coupon_code: `FREE${Math.random().toString(36).substring(7).toUpperCase()}`,
-        "user-id": "",
+        coupon_code: `FLIX${Math.random().toString(36).substring(7).toUpperCase()}`,
         executiveCode: executiveCode,
       };
 
-      const docRef = await addDoc(ticketsRef, newTicket);
-      return { id: docRef.id, ...newTicket };
+      const docRef = await addDoc(couponsCollection, couponData);
+      return { id: docRef.id, ...couponData };
     } catch (error) {
       console.error("Error adding document: ", error);
-      throw new Error("Failed to create new ticket. Please try again later.");
+      throw new Error("Failed to create new coupon. Please try again later.");
     }
   };
 
   const processCoupons = async () => {
     setIsGenerating(true);
     const processedTickets = [];
-    const totalAmount = parseFloat(amountPaid);
+    const totalAmount = parseFloat(couponAmount);
 
     try {
-      const newTicketsNeeded = Math.max(0, parseInt(numCoupons) - tickets.length);
+      const newTicketsNeeded = Math.max(0, parseInt(numCoupons) - coupons.length);
       const newTickets = [];
       for (let i = 0; i < newTicketsNeeded; i++) {
-        const newTicket = await createNewTicket(amountPaid);
+        const newTicket = await createCoupon(couponAmount);
         newTickets.push(newTicket);
       }
-      setTickets((prevTickets) => [...prevTickets, ...newTickets]);
+      setCoupons((prevTickets) => [...prevTickets, ...newTickets]);
 
       for (let i = 0; i < parseInt(numCoupons); i++) {
         const ticket = newTickets[i];
@@ -255,7 +249,7 @@ function QRCodeGenerator() {
         }
         const hashedCode = sha256(ticket.coupon_code);
         const urlCode = encodeURIComponent(hashedCode + ticket.id);
-        const ticketURL = `https://www.ticketflix.in/ticket/view/${urlCode}`;
+        const ticketURL = `https://www.ticketflix.in/view-coupon/${urlCode}`;
         const qrDataUrl = await QRCode.toDataURL(ticketURL);
         const storageUrl = await saveQRCodeToStorage(qrDataUrl, ticket.id);
         await updateFirestoreWithQRCodeUrl(ticket.id, storageUrl);
@@ -273,7 +267,7 @@ function QRCodeGenerator() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (isNaN(parseFloat(amountPaid)) || !numCoupons || !executiveCode) {
+    if (isNaN(parseFloat(couponAmount)) || !numCoupons || !executiveCode) {
       alert("Please provide valid inputs for all fields.");
       return;
     }
@@ -299,11 +293,11 @@ function QRCodeGenerator() {
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold mb-6">Generate QR Codes</h2>
+          <h2 className="text-2xl font-bold mb-6">Generate Coupons</h2>
           {allowCouponGeneration ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="numCoupons" className="block text-sm font-medium text-gray-700">Number of Coupons</label>
+                <label htmlFor="numCoupons" className="block text-sm font-medium text-gray-700">Number of coupons</label>
                 <input
                   type="number"
                   id="numCoupons"
@@ -314,11 +308,11 @@ function QRCodeGenerator() {
                 />
               </div>
               <div>
-                <label htmlFor="amountPaid" className="block text-sm font-medium text-gray-700">Amount Paid</label>
+                <label htmlFor="couponAmount" className="block text-sm font-medium text-gray-700">Coupon Amount</label>
                 <input
                   type="number"
-                  id="amountPaid"
-                  value={amountPaid}
+                  id="couponAmount"
+                  value={couponAmount}
                   onChange={(e) => setAmountPaid(e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                   required
@@ -337,14 +331,18 @@ function QRCodeGenerator() {
               <button
                 type="submit"
                 disabled={isGenerating}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200"
+                className={ `w-full text-white py-2 px-4 rounded-md transition duration-200` +
+                  isGenerating ?
+                    `bg-rose-700 hover:bg-rose-900 focus:outline-none focus:ring-2 focus:ring-rose-900 focus:ring-opacity-50`
+                  : `bg-gray-500 focus:ring-opacity-0`
+                }
               >
-                {isGenerating ? "Generating..." : "Generate QR Codes"}
+                {isGenerating ? "Generating..." : "Generate coupons"}
               </button>
             </form>
           ) : (
             <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
-              <p className="font-bold">Coupon Generation Not Allowed</p>
+              <p className="font-bold">Coupon Generation not allowed</p>
               <p>You are not currently authorized to generate coupons. Please contact your administrator for assistance.</p>
             </div>
           )}
@@ -354,7 +352,7 @@ function QRCodeGenerator() {
               download="qr_codes.pdf"
               className="mt-4 block text-center py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-200"
             >
-              Download QR Codes PDF
+              Download generated coupons
             </a>
           )}
         </div>
@@ -364,4 +362,4 @@ function QRCodeGenerator() {
   );
 }
 
-export default QRCodeGenerator;
+export default CouponGeneration;
