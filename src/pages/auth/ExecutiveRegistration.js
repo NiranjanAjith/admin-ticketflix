@@ -52,7 +52,7 @@ const ExecutiveRegistration = () => {
         <div className="w-full max-w-md relative">
           <div className="absolute inset-0 bg-red-600 transform -rotate-6 rounded-3xl shadow-2xl"></div>
           <div className="relative bg-gray-900 p-8 rounded-3xl shadow-xl backdrop-blur-sm border border-gray-800">
-            <h2 className="text-4xl font-bold mb-6 text-center text-red-500">Executive Registration</h2>
+            <h2 className="text-4xl font-bold mb-6 text-center text-red-500">Registration</h2>
             <p className="text-center mb-8 text-gray-300">Join the team behind the scenes</p>
             {error && <div className="bg-red-500 text-white p-3 rounded mb-4 text-sm">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-6">

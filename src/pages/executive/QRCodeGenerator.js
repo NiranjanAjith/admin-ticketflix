@@ -292,9 +292,9 @@ function QRCodeGenerator() {
   };
 
   return (
-    <div>
+    <div className="h-screen">
       <Header />
-      <div style={{ padding: "60px 20px" }}>
+      <div style={{ padding: "60px 20px" }} className="h-[77.8vh]">
         <input
           type="number"
           value={numCoupons}
