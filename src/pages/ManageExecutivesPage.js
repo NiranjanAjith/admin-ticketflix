@@ -23,10 +23,10 @@ const ManageExecutivesPage = () => {
 
     const toggleCouponGeneration = async (executiveId, currentValue) => {
         const executiveRef = doc(firestore, 'executives', executiveId);
-        await updateDoc(executiveRef, { allow_coupon_generation: !currentValue });
+        await updateDoc(executiveRef, { allow_executive_access: !currentValue });
         setExecutives(executives.map(executive =>
             executive.id === executiveId 
-                ? {...executive, allow_coupon_generation: !currentValue} 
+                ? {...executive, allow_executive_access: !currentValue} 
                 : executive
         ));
     };
@@ -55,14 +55,14 @@ const ManageExecutivesPage = () => {
                                         <td className="px-4 py-2">{executive.phoneNumber}</td>
                                         <td className="px-4 py-2">
                                             <button 
-                                                onClick={() => toggleCouponGeneration(executive.id, executive.allow_coupon_generation)}
+                                                onClick={() => toggleCouponGeneration(executive.id, executive.allow_executive_access)}
                                                 className={`px-4 py-2 rounded-md ${
-                                                    executive.allow_coupon_generation 
+                                                    executive.allow_executive_access 
                                                     ? 'bg-red-500 hover:bg-red-600 text-white' 
                                                     : 'bg-green-500 hover:bg-green-600 text-white'
                                                 }`}
                                             >
-                                                {executive.allow_coupon_generation ? 'Stop' : 'Allow'}
+                                                {executive.allow_executive_access ? 'Stop' : 'Allow'}
                                             </button>
                                         </td>
                                     </tr>

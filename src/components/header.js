@@ -34,14 +34,40 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
+      const currentIsAdmin = isAdmin; // Capture the current state
       await signOut(auth);
-      navigate(routes.ADMIN_LOGIN);
+      // Use the captured state to determine navigation
+      if (currentIsAdmin) {
+        navigate(routes.ADMIN_LOGIN);
+      } else {
+        navigate(routes.EXEC_LOGIN);
+      }
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
   const place = location.pathname;
+
+  const [isLoading, setIsLoading] = useState(true);
+
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      const adminEmails = ["admin@ticketflix.in", "developer@ticketflix.com"];
+      setIsAdmin(adminEmails.includes(user.email));
+    } else {
+      setIsAdmin(false);
+    }
+    setIsLoading(false);
+  });
+
+  return () => unsubscribe();
+}, []);
+
+if (isLoading) {
+  return <div>Loading...</div>;
+}
 
   return (
     <header className="bg-gray-900 text-white shadow-lg w-full">
