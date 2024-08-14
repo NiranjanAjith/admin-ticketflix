@@ -3,12 +3,12 @@ import { Route, Navigate } from "react-router-dom";
 import { auth } from "../firebase";
 
 import AdminLogin from "../pages/auth/AdminLogin";
-import AdminDashboard from "../pages/AdminDashboard";
-import AddTheatre from "../pages/AddTheatrePage";
-import ManageTheatresPage from "../pages/ManageTheatresPage";
-import ManageMoviesPage from "../pages/ManageMoviesPage";
-import AddMoviePaeg from "../pages/AddMoviePage";
-import ManageExecutivesPage from "../pages/ManageExecutivesPage";
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import AddTheatre from "../pages/admin/AddTheatrePage";
+import ManageTheatresPage from "../pages/admin/ManageTheatresPage";
+import ManageMoviesPage from "../pages/admin/ManageMoviesPage";
+import AddMoviePaeg from "../pages/admin/AddMoviePage";
+import ManageExecutivesPage from "../pages/admin/ManageExecutivesPage";
 
 import ExecutievLogin from "../pages/auth/ExecutiveLogin";
 import ExecutiveSignup from "../pages/auth/ExecutiveSignup";
@@ -146,8 +146,11 @@ const ExecutiveRoutes = () => {
         </ExecutivePrivateRoute>
       }
     />,
-    <Route path="/" element={<LandingPage></LandingPage>} />,
   ];
 };
 
-export { ExecutiveRoutes, AdminRoutes };
+const HomeRoutes = () => {
+  return [<Route path="/" element={<LandingPage></LandingPage>} />];
+}
+
+export { ExecutiveRoutes, AdminRoutes, HomeRoutes };

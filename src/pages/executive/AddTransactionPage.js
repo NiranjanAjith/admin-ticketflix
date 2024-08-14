@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
-import Header from '../../components/Header';
-import Footer from '../../components/Footer';
+import Header from './components/Header';
+import Footer from './components/Footer';
 import { AuthContext } from '../../context/AuthContext';
 
 const AddTransactionPage = () => {

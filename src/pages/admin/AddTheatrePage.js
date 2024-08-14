@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { firestore, storage } from '../firebase';
+import { firestore, storage } from '../../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import './styles/Dashboard.css';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import '../styles/Dashboard.css';
 import { FaPlus, FaTrash, FaChair } from 'react-icons/fa';
 
 const keralaDistricts = [

@@ -5,7 +5,7 @@ import { auth } from './firebase';
 import './styles.css';
 import './index.css';
 
-import { AdminRoutes, ExecutiveRoutes } from "./routes/routesList";
+import { AdminRoutes, ExecutiveRoutes, HomeRoutes } from "./routes/routesList";
 
 function App() {
   const [authChecked, setAuthChecked] = useState(false);
@@ -27,6 +27,7 @@ function App() {
         <Routes>
           {AdminRoutes()}
           {ExecutiveRoutes()}
+          {HomeRoutes()}
         </Routes>
       </Router>
     </>

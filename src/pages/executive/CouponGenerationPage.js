@@ -10,8 +10,8 @@ import { firestore, storage } from "../../firebase";
 import { sha256 } from "js-sha256";
 import { jsPDF } from "jspdf";
 import { AuthContext } from "../../context/AuthContext"; // Ensure this path is correct
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
 
 function CouponGeneration() {

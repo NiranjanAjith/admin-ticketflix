@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { signOut, onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth } from "../../../firebase";
 import {
   FaHome,
   FaTheaterMasks,
@@ -11,7 +11,7 @@ import {
   FaPlus,
   FaTicketAlt,
 } from "react-icons/fa";
-import routes from "../routes/constants";
+import routes from "../../../routes/constants";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -34,40 +34,32 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      const currentIsAdmin = isAdmin; // Capture the current state
       await signOut(auth);
-      // Use the captured state to determine navigation
-      if (currentIsAdmin) {
-        navigate(routes.ADMIN_LOGIN);
-      } else {
-        navigate(routes.EXEC_LOGIN);
-      }
+      isAdmin ? navigate(routes.ADMIN_LOGIN) : navigate(routes.EXEC_LOGIN);
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
-
   const place = location.pathname;
-
   const [isLoading, setIsLoading] = useState(true);
 
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    if (user) {
-      const adminEmails = ["admin@ticketflix.in", "developer@ticketflix.com"];
-      setIsAdmin(adminEmails.includes(user.email));
-    } else {
-      setIsAdmin(false);
-    }
-    setIsLoading(false);
-  });
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const adminEmails = ["admin@ticketflix.in", "developer@ticketflix.com"];
+        setIsAdmin(adminEmails.includes(user.email));
+      } else {
+        setIsAdmin(false);
+      }
+      setIsLoading(false);
+    });
 
-  return () => unsubscribe();
-}, []);
+    return () => unsubscribe();
+  }, []);
 
-if (isLoading) {
-  return <div>Loading...</div>;
-}
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <header className="bg-gray-900 text-white shadow-lg w-full">

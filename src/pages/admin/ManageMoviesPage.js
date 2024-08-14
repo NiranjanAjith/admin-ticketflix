@@ -6,10 +6,10 @@ import {
   updateDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { firestore } from "../firebase";
+import { firestore } from "../../firebase";
 import { FaTrashAlt } from "react-icons/fa"; // FaEdit,
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
 const ManageMoviesPage = () => {
   const [movies, setMovies] = useState([]);

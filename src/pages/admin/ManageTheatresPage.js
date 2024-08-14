@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, query, limit, startAfter, where } from 'firebase/firestore';
-import { firestore } from '../firebase';
+import { firestore } from '../../firebase';
 import { FaTrashAlt, FaChair, FaSearch } from 'react-icons/fa'; // FaEdit, 
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import Header from './components/Header';
+import Footer from './components/Footer';
 
 const THEATRES_PER_PAGE = 10;
 

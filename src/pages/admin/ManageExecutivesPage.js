@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { firestore } from '../firebase';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import { firestore } from '../../firebase';
+import Header from './components/Header';
+import Footer from './components/Footer';
 
 const ManageExecutivesPage = () => {
     const [executives, setExecutives] = useState([]);

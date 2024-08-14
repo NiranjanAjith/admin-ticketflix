@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, Timestamp, getDocs } from 'firebase/firestore';
-import { firestore, storage } from '../firebase';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import { firestore, storage } from '../../firebase';
+import Header from './components/Header';
+import Footer from './components/Footer';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { FaPlus, FaTrash } from 'react-icons/fa';
 
