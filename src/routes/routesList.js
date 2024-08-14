@@ -17,6 +17,7 @@ import CouponGeneration from "../pages/executive/CouponGenerationPage";
 import TransactionForm from "../pages/executive/AddTransactionPage";
 
 import routes from "./constants";
+import LandingPage from "../pages/LandingPage";
 
 const AdminRoutes = () => {
   const AdminPrivateRoute = ({ children }) => {
@@ -145,7 +146,7 @@ const ExecutiveRoutes = () => {
         </ExecutivePrivateRoute>
       }
     />,
-    <Route path="/" element={<>Home</>} />,
+    <Route path="/" element={<LandingPage></LandingPage>} />,
   ];
 };
 

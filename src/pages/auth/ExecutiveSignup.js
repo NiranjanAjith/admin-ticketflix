@@ -32,7 +32,7 @@ const ExecutiveSignup = () => {
         email,
         phoneNumber,
         executiveCode,
-        allow_coupon_generation: false
+        allow_executive_access: false
       });
       navigate('/executive');
     } catch (error) {
