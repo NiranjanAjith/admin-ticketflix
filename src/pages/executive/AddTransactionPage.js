@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { addDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { addDoc, collection, query, where, getDocs, runTransaction, doc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -57,7 +57,53 @@ const AddTransactionPage = () => {
     }
 
     try {
-      await addDoc(collection(db, 'coupons-transaction'), formData);
+      await runTransaction(db, async (transaction) => {
+        // Check if coupon exists and is valid
+        const couponRef = doc(db, 'coupons', formData['coupon-id']);
+        const couponDoc = await transaction.get(couponRef);
+        
+        if (!couponDoc.exists()) {
+          throw new Error('Coupon not found.');
+        }
+        
+        const couponData = couponDoc.data();
+        if (couponData.is_sold) {
+          throw new Error('This coupon has already been sold.');
+        }
+        
+        if (new Date() > couponData.validity) {
+          throw new Error('This coupon has expired.');
+        }
+
+        // Update coupon as sold
+        transaction.update(couponRef, { 
+          is_sold: true, 
+          sale_date: new Date() 
+        });
+
+        // Add transaction
+        const transactionRef = doc(collection(db, 'coupons-transaction'));
+        transaction.set(transactionRef, {
+          ...formData,
+          saleDate: new Date(),
+          couponAmount: couponData['amount-paid']
+        });
+
+        // Update executive's counts
+        const executivesRef = collection(db, 'executives');
+        const executiveQuery = query(executivesRef, where('executiveCode', '==', formData['executive-id']));
+        const executiveSnapshot = await getDocs(executiveQuery);
+        if (!executiveSnapshot.empty) {
+          const executiveDoc = executiveSnapshot.docs[0];
+          const currentSoldCount = executiveDoc.data().sold_coupons || 0;
+          const currentUnsoldCount = executiveDoc.data().unsold_coupons || 0;
+          transaction.update(executiveDoc.ref, { 
+            sold_coupons: currentSoldCount + 1,
+            unsold_coupons: currentUnsoldCount - 1
+          });
+        }
+      });
+
       setMessage({ type: 'success', content: 'Transaction submitted successfully!' });
       setFormData(prevState => ({
         ...prevState,

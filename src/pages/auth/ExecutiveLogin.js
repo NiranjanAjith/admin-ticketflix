@@ -1,12 +1,13 @@
 import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../../firebase";
+import { auth, firestore } from "../../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { AuthContext } from "../../context/AuthContext";
 import { Film, User, Lock, ChevronRight } from "lucide-react";
 import routes from "../../routes/constants";
 
-const ExecutievLogin = () => {
+const ExecutiveLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -23,10 +24,29 @@ const ExecutievLogin = () => {
     e.preventDefault();
     setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check if the user is an executive
+      const executiveRef = collection(firestore, 'executives');
+      const q = query(executiveRef, where('email', '==', user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        throw new Error('Invalid executive credentials');
+      }
+
+      // If we get here, the user is an executive
+      navigate(routes.EXEC_DASHBOARD);
     } catch (error) {
       setError(error.message);
+      // Sign out the user if they're not an executive
+      await auth.signOut();
     }
+  };
+
+  const handleToggle = () => {
+    navigate(routes.ADMIN_LOGIN);
   };
 
   return (
@@ -50,6 +70,21 @@ const ExecutievLogin = () => {
             <p className="text-center mb-8 text-gray-300">
               Enter the backstage of cinema magic
             </p>
+            
+            {/* Toggle Switch */}
+            <div className="flex items-center justify-center mb-6">
+              <span className="mr-3 text-gray-400">Admin</span>
+              <div
+                className="w-14 h-7 flex items-center bg-gray-300 rounded-full p-1 cursor-pointer"
+                onClick={handleToggle}
+              >
+                <div
+                  className="bg-red-500 w-5 h-5 rounded-full shadow-md transform duration-300 ease-in-out translate-x-7"
+                ></div>
+              </div>
+              <span className="ml-3 text-red-500">Executive</span>
+            </div>
+
             {error && (
               <div className="bg-red-500 text-white p-3 rounded mb-4 text-sm">
                 {error}
@@ -133,4 +168,4 @@ const ExecutievLogin = () => {
   );
 };
 
-export default ExecutievLogin;
+export default ExecutiveLogin;

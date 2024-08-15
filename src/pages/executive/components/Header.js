@@ -17,30 +17,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // Check if the user's email is in the list of admin emails
-        const adminEmails = ["admin@ticketflix.in", "developer@ticketflix.com"];
-        setIsAdmin(adminEmails.includes(user.email));
-      } else {
-        setIsAdmin(false);
-      }
-    });
-
-    return () => unsubscribe(); // Cleanup subscription on unmount
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      isAdmin ? navigate(routes.ADMIN_LOGIN) : navigate(routes.EXEC_LOGIN);
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-  const place = location.pathname;
+  const [isExecutive, setIsExecutive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -48,14 +25,27 @@ const Header = () => {
       if (user) {
         const adminEmails = ["admin@ticketflix.in", "developer@ticketflix.com"];
         setIsAdmin(adminEmails.includes(user.email));
+        setIsExecutive(!adminEmails.includes(user.email));
       } else {
         setIsAdmin(false);
+        setIsExecutive(false);
       }
       setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate(isAdmin ? routes.ADMIN_LOGIN : routes.EXEC_LOGIN);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
+  const place = location.pathname;
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -74,12 +64,7 @@ const Header = () => {
               {isAdmin ? (
                 <>
                   <li>
-                    <Link
-                      to={
-                        isAdmin ? routes.ADMIN_DASHBOARD : routes.EXEC_DASHBOARD
-                      }
-                      className={navLinkStyle}
-                    >
+                    <Link to={routes.ADMIN_DASHBOARD} className={navLinkStyle}>
                       <FaHome className="mr-1" /> Dashboard
                     </Link>
                   </li>
@@ -91,10 +76,7 @@ const Header = () => {
                     </li>
                   ) : (
                     <li>
-                      <Link
-                        to={routes.MANAGE_THEATRES}
-                        className={navLinkStyle}
-                      >
+                      <Link to={routes.MANAGE_THEATRES} className={navLinkStyle}>
                         <FaTheaterMasks className="mr-1" /> Theaters
                       </Link>
                     </li>
@@ -118,23 +100,25 @@ const Header = () => {
                     </Link>
                   </li>
                 </>
-              ) : (
+              ) : isExecutive ? (
                 <>
                   <li>
-                    <Link to={routes.EXEC_COUPON_GEN} className={navLinkStyle}>
-                      <FaTicketAlt className="mr-1" /> Coupons
+                    <Link to={routes.EXEC_DASHBOARD} className={navLinkStyle}>
+                      <FaHome className="mr-1" /> Dashboard
                     </Link>
                   </li>
                   <li>
-                    <Link
-                      to={routes.EXEC_ADD_TRANSACTION}
-                      className={navLinkStyle}
-                    >
+                    <Link to={routes.EXEC_COUPON_GEN} className={navLinkStyle}>
+                      <FaTicketAlt className="mr-1" /> Generate Coupons
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to={routes.EXEC_ADD_TRANSACTION} className={navLinkStyle}>
                       <FaPlus className="mr-1" /> Add Transaction
                     </Link>
                   </li>
                 </>
-              )}
+              ) : null}
               <li>
                 <button onClick={handleLogout} className={navLinkStyle}>
                   <FaSignOutAlt className="mr-1" /> Logout
