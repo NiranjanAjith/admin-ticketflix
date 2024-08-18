@@ -257,7 +257,7 @@ function CouponGeneration() {
       return await runTransaction(firestore, async (transaction) => {
         const couponsCollection = collection(firestore, "coupons");
         const newCoupons = [];
-
+  
         for (let i = 0; i < count; i++) {
           const couponData = {
             "amount-paid": amount,
@@ -266,6 +266,7 @@ function CouponGeneration() {
             createdAt: new Date(),
             generated_date: serverTimestamp(),
             is_sold: false,
+            is_redeemed: false,  // New field
             sale_date: null,
             validity: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
           };
@@ -273,7 +274,7 @@ function CouponGeneration() {
           transaction.set(newCouponRef, couponData);
           newCoupons.push({ id: newCouponRef.id, ...couponData });
         }
-
+  
         // Update executive's coupon count
         const executivesRef = collection(firestore, "executives");
         const executiveQuery = query(executivesRef, where("executiveCode", "==", executiveCode));
@@ -286,7 +287,7 @@ function CouponGeneration() {
             unsold_coupons: (executiveDoc.data().unsold_coupons || 0) + count
           });
         }
-
+  
         return newCoupons;
       });
     } catch (error) {

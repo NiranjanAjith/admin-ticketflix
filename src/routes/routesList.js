@@ -7,7 +7,6 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import AddTheatre from "../pages/admin/AddTheatrePage";
 import ManageTheatresPage from "../pages/admin/ManageTheatresPage";
 import ManageMoviesPage from "../pages/admin/ManageMoviesPage";
-import AddMoviePaeg from "../pages/admin/AddMoviePage";
 import ManageExecutivesPage from "../pages/admin/ManageExecutivesPage";
 
 import ExecutievLogin from "../pages/auth/ExecutiveLogin";
@@ -18,6 +17,7 @@ import TransactionForm from "../pages/executive/AddTransactionPage";
 
 import routes from "./constants";
 import LandingPage from "../pages/LandingPage";
+import AddMoviePage from "../pages/admin/AddMoviePage";
 
 const AdminRoutes = () => {
   const AdminPrivateRoute = ({ children }) => {
@@ -78,7 +78,7 @@ const AdminRoutes = () => {
       path={routes.ADD_MOVIE}
       element={
         <AdminPrivateRoute>
-          <AddMoviePaeg />
+          <AddMoviePage />
         </AdminPrivateRoute>
       }
     />,

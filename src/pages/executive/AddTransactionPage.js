@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { addDoc, collection, query, where, getDocs, runTransaction, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, runTransaction, doc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -7,7 +7,7 @@ import { AuthContext } from '../../context/AuthContext';
 
 const AddTransactionPage = () => {
   const [formData, setFormData] = useState({
-    'coupon-id': '',
+    'coupon-code': '',
     'executive-id': '',
     'name': '',
     'phone': '',
@@ -16,6 +16,7 @@ const AddTransactionPage = () => {
   const [message, setMessage] = useState({ type: '', content: '' });
   const [loading, setLoading] = useState(true);
   const [allowExecutiveAccess, setAllowExecutiveAccess] = useState(false);
+  const [unsoldCoupons, setUnsoldCoupons] = useState([]);
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
@@ -31,6 +32,7 @@ const AddTransactionPage = () => {
             'executive-id': executiveData.executiveCode
           }));
           setAllowExecutiveAccess(executiveData.allow_executive_access);
+          await fetchUnsoldCoupons(executiveData.executiveCode);
         }
       }
       setLoading(false);
@@ -38,6 +40,20 @@ const AddTransactionPage = () => {
 
     fetchExecutiveData();
   }, [user]);
+
+  const fetchUnsoldCoupons = async (executiveCode) => {
+    const couponsRef = collection(db, 'coupons');
+    const q = query(couponsRef, 
+      where('executiveCode', '==', executiveCode),
+      where('is_sold', '==', false)
+    );
+    const querySnapshot = await getDocs(q);
+    const coupons = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setUnsoldCoupons(coupons);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -50,16 +66,21 @@ const AddTransactionPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage({ type: '', content: '' });
-
+  
     if (formData['transaction-id'].length !== 5 || !/^\d+$/.test(formData['transaction-id'])) {
       setMessage({ type: 'error', content: 'Transaction ID must be exactly 5 digits.' });
       return;
     }
-
+  
     try {
       await runTransaction(db, async (transaction) => {
-        // Check if coupon exists and is valid
-        const couponRef = doc(db, 'coupons', formData['coupon-id']);
+        // Find the coupon document based on the selected coupon code
+        const selectedCoupon = unsoldCoupons.find(coupon => coupon.coupon_code === formData['coupon-code']);
+        if (!selectedCoupon) {
+          throw new Error('Selected coupon not found.');
+        }
+  
+        const couponRef = doc(db, 'coupons', selectedCoupon.id);
         const couponDoc = await transaction.get(couponRef);
         
         if (!couponDoc.exists()) {
@@ -71,24 +92,27 @@ const AddTransactionPage = () => {
           throw new Error('This coupon has already been sold.');
         }
         
-        if (new Date() > couponData.validity) {
+        // Convert validity timestamp to Date object and compare
+        const validityDate = couponData.validity.toDate();
+        if (new Date() > validityDate) {
           throw new Error('This coupon has expired.');
         }
-
+  
         // Update coupon as sold
         transaction.update(couponRef, { 
           is_sold: true, 
           sale_date: new Date() 
         });
-
+  
         // Add transaction
         const transactionRef = doc(collection(db, 'coupons-transaction'));
         transaction.set(transactionRef, {
           ...formData,
+          'coupon-id': selectedCoupon.id,
           saleDate: new Date(),
           couponAmount: couponData['amount-paid']
         });
-
+  
         // Update executive's counts
         const executivesRef = collection(db, 'executives');
         const executiveQuery = query(executivesRef, where('executiveCode', '==', formData['executive-id']));
@@ -103,20 +127,21 @@ const AddTransactionPage = () => {
           });
         }
       });
-
+  
       setMessage({ type: 'success', content: 'Transaction submitted successfully!' });
       setFormData(prevState => ({
         ...prevState,
-        'coupon-id': '',
+        'coupon-code': '',
         'name': '',
         'phone': '',
         'transaction-id': ''
       }));
+      // Refresh the list of unsold coupons
+      await fetchUnsoldCoupons(formData['executive-id']);
     } catch (error) {
       setMessage({ type: 'error', content: `Error submitting transaction: ${error.message}` });
     }
   };
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-100">
@@ -154,16 +179,22 @@ const AddTransactionPage = () => {
                 )}
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="coupon-id" className="block text-sm font-medium text-gray-700">Coupon ID</label>
-                    <input
-                      type="text"
-                      name="coupon-id"
-                      id="coupon-id"
-                      value={formData['coupon-id']}
+                    <label htmlFor="coupon-code" className="block text-sm font-medium text-gray-700">Coupon Code</label>
+                    <select
+                      name="coupon-code"
+                      id="coupon-code"
+                      value={formData['coupon-code']}
                       onChange={handleChange}
                       required
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    />
+                    >
+                      <option value="">Select a coupon</option>
+                      {unsoldCoupons.map(coupon => (
+                        <option key={coupon.id} value={coupon.coupon_code}>
+                          {coupon.coupon_code} - Rs. {coupon['amount-paid']}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label htmlFor="executive-id" className="block text-sm font-medium text-gray-700">Executive ID</label>
