@@ -17,6 +17,7 @@ import Footer from "./components/Footer";
 const ManageMoviesPage = () => {
   const [movies, setMovies] = useState([]);
   const [editingMovie, setEditingMovie] = useState(null);
+  const [addingShows, setAddingShows] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
   const [poster, setPoster] = useState(null);
   const [message, setMessage] = useState({ type: '', content: '' });
@@ -62,6 +63,7 @@ const ManageMoviesPage = () => {
   const handleEdit = (movie) => {
     setEditingMovie(movie);
     setIsAdding(false);
+    setAddingShows(null);
   };
 
   const handleAdd = () => {
@@ -80,12 +82,13 @@ const ManageMoviesPage = () => {
       ageRating: '',
     });
     setIsAdding(true);
+    setAddingShows(null);
   };
 
   const handleAddShows = (movie) => {
-    setEditingMovie(movie);
+    setAddingShows(movie);
+    setEditingMovie(null);
     setIsAdding(false);
-    // Reset screen selections and showtimes
     setScreenSelections({});
     setShowtimes({});
   };
@@ -117,44 +120,54 @@ const ManageMoviesPage = () => {
         await updateDoc(movieRef, movieData);
       }
 
-      // Add shows if any
-      if (Object.keys(screenSelections).length > 0) {
-        const showsPromises = Object.entries(screenSelections).flatMap(([theaterId, screens]) => 
-          Object.entries(screens).flatMap(([screenName, isSelected]) => {
-            if (isSelected) {
-              return showtimes[theaterId][screenName].map(async (showtime) => {
-                const showtimeDate = new Date(`${showtime.date}T${showtime.time}`);
-                if (isNaN(showtimeDate.getTime())) {
-                  throw new Error(`Invalid showtime: ${showtime.date} ${showtime.time}`);
-                }
-                const showData = {
-                  movieId: editingMovie.id,
-                  theaterId,
-                  screenName,
-                  datetime: Timestamp.fromDate(showtimeDate),
-                  ticketPrices: showtime.ticketPrices,
-                  seatMatrix: theaters.find(t => t.id === theaterId)['seat-matrix-layout'][screenName]
-                };
-                return addDoc(collection(firestore, 'shows'), showData);
-              });
-            }
-            return [];
-          })
-        );
-
-        await Promise.all(showsPromises);
-      }
-
       setMessage({ type: 'success', content: `Movie ${isAdding ? 'added' : 'updated'} successfully!` });
       setEditingMovie(null);
       setIsAdding(false);
       setPoster(null);
-      setScreenSelections({});
-      setShowtimes({});
       fetchMovies();
     } catch (error) {
       console.error('Error updating movie: ', error);
       setMessage({ type: 'error', content: `Error ${isAdding ? 'adding' : 'updating'} movie: ${error.message}` });
+    }
+  };
+
+  const handleAddShowsSubmit = async (e) => {
+    e.preventDefault();
+    if (!addingShows) return;
+
+    try {
+      const showsPromises = Object.entries(screenSelections).flatMap(([theaterId, screens]) => 
+        Object.entries(screens).flatMap(([screenName, isSelected]) => {
+          if (isSelected) {
+            return showtimes[theaterId][screenName].map(async (showtime) => {
+              const showtimeDate = new Date(`${showtime.date}T${showtime.time}`);
+              if (isNaN(showtimeDate.getTime())) {
+                throw new Error(`Invalid showtime: ${showtime.date} ${showtime.time}`);
+              }
+              const showData = {
+                movieId: addingShows.id,
+                theaterId,
+                screenName,
+                datetime: Timestamp.fromDate(showtimeDate),
+                ticketPrices: showtime.ticketPrices,
+                seatMatrix: theaters.find(t => t.id === theaterId)['seat-matrix-layout'][screenName]
+              };
+              return addDoc(collection(firestore, 'shows'), showData);
+            });
+          }
+          return [];
+        })
+      );
+
+      await Promise.all(showsPromises);
+
+      setMessage({ type: 'success', content: 'Shows added successfully!' });
+      setAddingShows(null);
+      setScreenSelections({});
+      setShowtimes({});
+    } catch (error) {
+      console.error('Error adding shows: ', error);
+      setMessage({ type: 'error', content: `Error adding shows: ${error.message}` });
     }
   };
 
@@ -340,8 +353,8 @@ const ManageMoviesPage = () => {
                       <button onClick={() => handleDelete(movie.id)} className="text-red-600 hover:text-red-800 mr-2">
                         <FaTrashAlt />
                       </button>
-                      <button onClick={() => handleAddShows(movie)} className="text-green-600 hover:text-green-800">
-                        <FaPlus /> Shows
+                      <button onClick={() => handleAddShows(movie)} className="px-2 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        Add Shows
                       </button>
                     </td>
                   </tr>
@@ -356,213 +369,240 @@ const ManageMoviesPage = () => {
             <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  {isAdding ? 'Add Movie' : screenSelections ? 'Add Shows' : 'Edit Movie'}
+                  {isAdding ? 'Add Movie' : 'Edit Movie'}
                 </h3>
                 <form onSubmit={handleUpdate} className="space-y-4">
-                  {!screenSelections && (
-                    <>
-                      <input
-                        name="title"
-                        value={editingMovie.title || ""}
-                        onChange={handleEditChange}
-                        placeholder="Title"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <input
-                        name="releaseDate"
-                        type="date"
-                        value={formatDate(editingMovie.releaseDate)}
-                        onChange={handleEditChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <input
-                        name="genre"
-                        value={editingMovie.genre?.join(", ") || ""}
-                        onChange={handleEditChange}
-                        placeholder="Genre (comma-separated)"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <input
-                        name="duration"
-                        type="number"
-                        value={editingMovie.duration || ""}
-                        onChange={handleEditChange}
-                        placeholder="Duration (minutes)"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <textarea
-                        name="description"
-                        value={editingMovie.description || ""}
-                        onChange={handleEditChange}
-                        placeholder="Description"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <input
-                        name="rating"
-                        type="number"
-                        step="0.1"
-                        value={editingMovie.rating || ""}
-                        onChange={handleEditChange}
-                        placeholder="Rating"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <input
-                        name="trailer"
-                        type="url"
-                        value={editingMovie.trailer || ""}
-                        onChange={handleEditChange}
-                        placeholder="Trailer URL"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <input
-                        name="director"
-                        value={editingMovie.director || ""}
-                        onChange={handleEditChange}
-                        placeholder="Director"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <input
-                        name="cast"
-                        value={editingMovie.cast?.join(", ") || ""}
-                        onChange={handleEditChange}
-                        placeholder="Cast (comma-separated)"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <input
-                        name="language"
-                        value={editingMovie.language || ""}
-                        onChange={handleEditChange}
-                        placeholder="Language"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <input
-                        name="ageRating"
-                        value={editingMovie.ageRating || ""}
-                        onChange={handleEditChange}
-                        placeholder="Age Rating"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <div>
-                        <label htmlFor="poster" className="block text-sm font-medium text-gray-700 mb-2">Poster:</label>
-                        <input
-                          type="file"
-                          id="poster"
-                          name="poster"
-                          onChange={handlePosterChange}
-                          className="block w-full text-sm text-gray-500
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-md file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-indigo-50 file:text-indigo-700
-                              hover:file:bg-indigo-100"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Shows section */}
-                  {(Object.keys(screenSelections).length > 0 || !isAdding) && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mt-4 mb-2">Add Shows</h4>
-                      {theaters.map(theater => (
-                        <div key={theater.id} className="mb-4">
-                          <label className="inline-flex items-center">
-                            <input
-                              type="checkbox"
-                              value={theater.id}
-                              checked={!!screenSelections[theater.id]}
-                              onChange={handleTheaterChange}
-                              className="form-checkbox h-5 w-5 text-indigo-600"
-                            />
-                            <span className="ml-2 text-gray-700">{theater['theatre-name']}</span>
-                          </label>
-                          {screenSelections[theater.id] && (
-                            <div className="ml-6 mt-2 space-y-2">
-                              {Object.keys(theater['seat-matrix-layout']).map(screenName => (
-                                <label key={screenName} className="inline-flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={screenSelections[theater.id][screenName] || false}
-                                    onChange={() => handleScreenChange(theater.id, screenName)}
-                                    className="form-checkbox h-5 w-5 text-indigo-600"
-                                  />
-                                  <span className="ml-2 text-gray-700">{screenName}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      {Object.entries(screenSelections).map(([theaterId, screens]) => (
-                        <div key={theaterId} className="mt-6 p-4 border border-gray-200 rounded-md">
-                          <h3 className="text-lg font-medium text-gray-900 mb-4">
-                            {theaters.find(t => t.id === theaterId)['theatre-name']}
-                          </h3>
-                          
-                          {Object.entries(screens).map(([screenName, isSelected]) => isSelected && (
-                            <div key={screenName} className="mb-4">
-                              <h4 className="text-md font-medium text-gray-800 mb-2">{screenName}</h4>
-                              {showtimes[theaterId]?.[screenName]?.map((showtime, index) => (
-                                <div key={index} className="mb-4 p-4 border border-gray-200 rounded-md">
-                                  <div className="flex items-center space-x-2 mb-2">
-                                    <input
-                                      type="date"
-                                      value={showtime.date}
-                                      onChange={(e) => handleShowtimeChange(theaterId, screenName, index, 'date', e.target.value)}
-                                      className="form-input rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                                    />
-                                    <input
-                                      type="time"
-                                      value={showtime.time}
-                                      onChange={(e) => handleShowtimeChange(theaterId, screenName, index, 'time', e.target.value)}
-                                      className="form-input rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => removeShowtime(theaterId, screenName, index)}
-                                      className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
-                                    >
-                                      <FaTrash />
-                                    </button>
-                                  </div>
-                                  <div className="mt-2">
-                                    <h5 className="text-sm font-medium text-gray-700 mb-1">Ticket Prices:</h5>
-                                    {Object.entries(showtime.ticketPrices).map(([seatType, price]) => (
-                                      <div key={seatType} className="flex items-center space-x-2 mb-2">
-                                        <label className="w-24 text-sm font-medium text-gray-700">{seatType}:</label>
-                                        <input
-                                          type="number"
-                                          value={price}
-                                          onChange={(e) => handleTicketPriceChange(theaterId, screenName, index, seatType, e.target.value)}
-                                          className="form-input rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                                          placeholder="Price"
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                              <button
-                                type="button"
-                                onClick={() => addShowtime(theaterId, screenName)}
-                                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
-                              >
-                                <FaPlus className="mr-2" /> Add Showtime
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
+                  <input
+                    name="title"
+                    value={editingMovie.title || ""}
+                    onChange={handleEditChange}
+                    placeholder="Title"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="releaseDate"
+                    type="date"
+                    value={formatDate(editingMovie.releaseDate)}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="showEndDate"
+                    type="date"
+                    value={formatDate(editingMovie.showEndDate)}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="genre"
+                    value={editingMovie.genre?.join(", ") || ""}
+                    onChange={handleEditChange}
+                    placeholder="Genre (comma-separated)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="duration"
+                    type="number"
+                    value={editingMovie.duration || ""}
+                    onChange={handleEditChange}
+                    placeholder="Duration (minutes)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <textarea
+                    name="description"
+                    value={editingMovie.description || ""}
+                    onChange={handleEditChange}
+                    placeholder="Description"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="rating"
+                    type="number"
+                    step="0.1"
+                    value={editingMovie.rating || ""}
+                    onChange={handleEditChange}
+                    placeholder="Rating"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="trailer"
+                    type="url"
+                    value={editingMovie.trailer || ""}
+                    onChange={handleEditChange}
+                    placeholder="Trailer URL"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="director"
+                    value={editingMovie.director || ""}
+                    onChange={handleEditChange}
+                    placeholder="Director"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="cast"
+                    value={editingMovie.cast?.join(", ") || ""}
+                    onChange={handleEditChange}
+                    placeholder="Cast (comma-separated)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="language"
+                    value={editingMovie.language || ""}
+                    onChange={handleEditChange}
+                    placeholder="Language"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="ageRating"
+                    value={editingMovie.ageRating || ""}
+                    onChange={handleEditChange}
+                    placeholder="Age Rating"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <div>
+                    <label htmlFor="poster" className="block text-sm font-medium text-gray-700 mb-2">Poster:</label>
+                    <input
+                      type="file"
+                      id="poster"
+                      name="poster"
+                      onChange={handlePosterChange}
+                      className="block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-md file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-indigo-50 file:text-indigo-700
+                          hover:file:bg-indigo-100"
+                    />
+                  </div>
                   <div className="flex justify-end space-x-3">
                     <button
                       type="button"
                       onClick={() => {
                         setEditingMovie(null);
                         setIsAdding(false);
+                      }}
+                      className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {isAdding ? 'Add Movie' : 'Update Movie'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {addingShows && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="add-shows-modal">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Add Shows for {addingShows.title}
+                </h3>
+                <form onSubmit={handleAddShowsSubmit} className="space-y-4">
+                  {theaters.map(theater => (
+                    <div key={theater.id} className="mb-4">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          value={theater.id}
+                          checked={!!screenSelections[theater.id]}
+                          onChange={handleTheaterChange}
+                          className="form-checkbox h-5 w-5 text-indigo-600"
+                        />
+                        <span className="ml-2 text-gray-700">{theater['theatre-name']}</span>
+                      </label>
+                      {screenSelections[theater.id] && (
+                        <div className="ml-6 mt-2 space-y-2">
+                          {Object.keys(theater['seat-matrix-layout']).map(screenName => (
+                            <label key={screenName} className="inline-flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={screenSelections[theater.id][screenName] || false}
+                                onChange={() => handleScreenChange(theater.id, screenName)}
+                                className="form-checkbox h-5 w-5 text-indigo-600"
+                              />
+                              <span className="ml-2 text-gray-700">{screenName}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {Object.entries(screenSelections).map(([theaterId, screens]) => (
+                    <div key={theaterId} className="mt-6 p-4 border border-gray-200 rounded-md">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        {theaters.find(t => t.id === theaterId)['theatre-name']}
+                      </h3>
+                      
+                      {Object.entries(screens).map(([screenName, isSelected]) => isSelected && (
+                        <div key={screenName} className="mb-4">
+                          <h4 className="text-md font-medium text-gray-800 mb-2">{screenName}</h4>
+                          {showtimes[theaterId]?.[screenName]?.map((showtime, index) => (
+                            <div key={index} className="mb-4 p-4 border border-gray-200 rounded-md">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <input
+                                  type="date"
+                                  value={showtime.date}
+                                  onChange={(e) => handleShowtimeChange(theaterId, screenName, index, 'date', e.target.value)}
+                                  className="form-input rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                />
+                                <input
+                                  type="time"
+                                  value={showtime.time}
+                                  onChange={(e) => handleShowtimeChange(theaterId, screenName, index, 'time', e.target.value)}
+                                  className="form-input rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeShowtime(theaterId, screenName, index)}
+                                  className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                                >
+                                  <FaTrash />
+                                </button>
+                              </div>
+                              <div className="mt-2">
+                                <h5 className="text-sm font-medium text-gray-700 mb-1">Ticket Prices:</h5>
+                                {Object.entries(showtime.ticketPrices).map(([seatType, price]) => (
+                                  <div key={seatType} className="flex items-center space-x-2 mb-2">
+                                    <label className="w-24 text-sm font-medium text-gray-700">{seatType}:</label>
+                                    <input
+                                      type="number"
+                                      value={price}
+                                      onChange={(e) => handleTicketPriceChange(theaterId, screenName, index, seatType, e.target.value)}
+                                      className="form-input rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                      placeholder="Price"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => addShowtime(theaterId, screenName)}
+                            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
+                          >
+                            <FaPlus className="mr-2" /> Add Showtime
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddingShows(null);
                         setScreenSelections({});
                         setShowtimes({});
                       }}
@@ -574,7 +614,7 @@ const ManageMoviesPage = () => {
                       type="submit"
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {isAdding ? 'Add Movie' : Object.keys(screenSelections).length > 0 ? 'Add Shows' : 'Update Movie'}
+                      Add Shows
                     </button>
                   </div>
                 </form>
