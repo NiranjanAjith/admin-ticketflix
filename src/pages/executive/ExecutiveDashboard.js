@@ -25,7 +25,7 @@ const ExecutiveDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        if (!user) {
+        if (!user || !user.email) {
           console.log("No user logged in");
           setError("No user logged in");
           setLoading(false);
@@ -34,11 +34,10 @@ const ExecutiveDashboard = () => {
 
         console.log("Fetching data for user:", user.uid);
 
-        const executiveDocRef = doc(firestore, "executives", user.uid);
+        const executiveDocRef = doc(firestore, "executives", user.email);
         const executiveDocSnap = await getDoc(executiveDocRef);
-
         if (!executiveDocSnap.exists()) {
-          console.log("No executive document found for user:", user.uid);
+          console.log("No executive document found for user:", user.email);
           setError("No executive data found");
           setLoading(false);
           return;

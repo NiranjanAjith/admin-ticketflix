@@ -27,7 +27,7 @@ const ExecutiveSignup = () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const executiveCode = generateExecutiveCode(name, phoneNumber);
-      await setDoc(doc(firestore, 'executives', userCredential.user.uid), {
+      await setDoc(doc(firestore, 'executives', email), {
         name,
         email,
         phoneNumber,
