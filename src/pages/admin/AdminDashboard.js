@@ -191,7 +191,7 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-blue-100 p-4 rounded-lg">
                 <h3 className="font-semibold text-lg mb-2">Total Coupons Generated</h3>
-                <p className="text-2xl font-bold">{selectedExecutiveData.total_coupons || 0}</p>
+                <p className="text-2xl font-bold">{selectedExecutiveData.coupon_count || 0}</p>
               </div>
               <div className="bg-green-100 p-4 rounded-lg">
                 <h3 className="font-semibold text-lg mb-2">Sold Coupons</h3>

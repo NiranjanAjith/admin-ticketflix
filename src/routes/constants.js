@@ -1,5 +1,7 @@
 const routes = {
   HOME: "/",
+  VIEW_COUPON:"/view-coupon/:couponAndDocId",
+  VIEW_TICKET:"/view-ticket/:ticketAndDocId",
 
   ADMIN_LOGIN: "/campaign-admin/login",
   ADMIN_DASHBOARD: "/campaign-admin",

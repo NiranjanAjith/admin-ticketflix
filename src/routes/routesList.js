@@ -18,6 +18,8 @@ import TransactionForm from "../pages/executive/AddTransactionPage";
 import routes from "./constants";
 import LandingPage from "../pages/LandingPage";
 import AddMoviePage from "../pages/admin/AddMoviePage";
+import ViewCoupon from "../pages/qr_verification/ViewCoupon";
+import ViewTicket from "../pages/qr_verification/ViewTicket";
 
 const AdminRoutes = () => {
   const AdminPrivateRoute = ({ children }) => {
@@ -150,7 +152,21 @@ const ExecutiveRoutes = () => {
 };
 
 const HomeRoutes = () => {
-  return [<Route path="/" element={<LandingPage></LandingPage>} />];
+  return [<Route path="/" element={<LandingPage></LandingPage>} />,
+    <Route
+  path={routes.VIEW_COUPON}
+  element={
+      <ViewCoupon />
+  }
+/>,
+  <Route
+  path={routes.VIEW_TICKET}
+  element={
+      <ViewTicket />
+  }
+/>
+  ];
+
 }
 
 export { ExecutiveRoutes, AdminRoutes, HomeRoutes };
