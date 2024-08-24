@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, query, limit, startAfter, where, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -321,32 +322,32 @@ const ManageTheatresPage = () => {
         }
     };
 
-    const renderSeatLayout = (screen, layout) => {
-        const rows = layout.rows;
-        const columns = layout.columns;
-        const seatMatrix = [];
-        for (let i = 0; i < rows; i++) {
-          const row = [];
-          for (let j = 0; j < columns; j++) {
-            row.push(
-              <div key={`${i}-${j}`} className="inline-block m-1">
-                <FaChair className="text-blue-500" />
-              </div>
-            );
-          }
-          seatMatrix.push(
-            <div key={i} className="flex justify-center">
-              {row}
-            </div>
-          );
-        }
-        return (
-          <div className="mt-4 p-4 border rounded-md">
-            <h6 className="font-medium text-gray-800 mb-2">{screen} Layout</h6>
-            {seatMatrix}
-          </div>
-        );
-    };
+    // const renderSeatLayout = (screen, layout) => { // FIXME: ?? FUNCTION NOT USED ANYWHERE IN FILE
+    //     const rows = layout.rows;
+    //     const columns = layout.columns;
+    //     const seatMatrix = [];
+    //     for (let i = 0; i < rows; i++) {
+    //       const row = [];
+    //       for (let j = 0; j < columns; j++) {
+    //         row.push(
+    //           <div key={`${i}-${j}`} className="inline-block m-1">
+    //             <FaChair className="text-blue-500" />
+    //           </div>
+    //         );
+    //       }
+    //       seatMatrix.push(
+    //         <div key={i} className="flex justify-center">
+    //           {row}
+    //         </div>
+    //       );
+    //     }
+    //     return (
+    //       <div className="mt-4 p-4 border rounded-md">
+    //         <h6 className="font-medium text-gray-800 mb-2">{screen} Layout</h6>
+    //         {seatMatrix}
+    //       </div>
+    //     );
+    // };
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-100">

@@ -128,7 +128,7 @@ const ExecutiveDashboard = () => {
             <li key={coupon.fileName} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
               <span className="text-gray-800">{coupon.fileName}</span>
               <div>
-                <span className={`mr-4 ${coupon.is_sold ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`mr-4 ${coupon.is_sold ? 'text-green-600' : 'text-yellow-600'}`}>
                   {coupon.is_sold ? 'Sold' : 'Unsold'}
                 </span>
                 <span className="text-gray-600 mr-4">{coupon.generatedDate.toLocaleDateString()}</span>
@@ -166,7 +166,7 @@ const ExecutiveDashboard = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-2xl font-semibold text-red-600">{error}</div>
+        <div className="text-2xl font-semibold text-yellow-600">{error}</div>
       </div>
     );
   }
@@ -189,7 +189,7 @@ const ExecutiveDashboard = () => {
                 <p className="text-lg font-semibold">Sold Coupons</p>
                 <p className="text-3xl font-bold">{couponAnalysis.sold_coupons}</p>
               </div>
-              <div className="bg-red-100 p-4 rounded-lg">
+              <div className="bg-yellow-100 p-4 rounded-lg">
                 <p className="text-lg font-semibold">Unsold Coupons</p>
                 <p className="text-3xl font-bold">{couponAnalysis.unsold_coupons}</p>
               </div>

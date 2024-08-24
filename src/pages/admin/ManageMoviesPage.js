@@ -17,9 +17,9 @@ import Footer from "./components/Footer";
 const ManageMoviesPage = () => {
   const [movies, setMovies] = useState([]);
   const [editingMovie, setEditingMovie] = useState(null);
-  const [isAdding, setIsAdding] = useState(false);
+  // const [isAdding, setIsAdding] = useState(false); // FIXME: ?? NOT USED IN THE PAGE
   const [poster, setPoster] = useState(null);
-  const [message, setMessage] = useState({ type: '', content: '' });
+  const [message, setMessage] = useState({ type: "", content: "" });
 
   useEffect(() => {
     fetchMovies();
@@ -47,7 +47,7 @@ const ManageMoviesPage = () => {
 
   const handleEdit = (movie) => {
     setEditingMovie(movie);
-    setIsAdding(false);
+    // setIsAdding(false);
   };
 
   const handleUpdate = async (e) => {
@@ -57,7 +57,10 @@ const ManageMoviesPage = () => {
     try {
       let posterUrl = editingMovie.posterUrl;
       if (poster) {
-        const storageRef = ref(storage, `posters/${editingMovie.title}_${Date.now()}`);
+        const storageRef = ref(
+          storage,
+          `posters/${editingMovie.title}_${Date.now()}`
+        );
         await uploadBytes(storageRef, poster);
         posterUrl = await getDownloadURL(storageRef);
       }
@@ -72,13 +75,16 @@ const ManageMoviesPage = () => {
       const movieRef = doc(firestore, "movies", editingMovie.id);
       await updateDoc(movieRef, movieData);
 
-      setMessage({ type: 'success', content: 'Movie updated successfully!' });
+      setMessage({ type: "success", content: "Movie updated successfully!" });
       setEditingMovie(null);
       setPoster(null);
       fetchMovies();
     } catch (error) {
-      console.error('Error updating movie: ', error);
-      setMessage({ type: 'error', content: `Error updating movie: ${error.message}` });
+      console.error("Error updating movie: ", error);
+      setMessage({
+        type: "error",
+        content: `Error updating movie: ${error.message}`,
+      });
     }
   };
 
@@ -86,11 +92,14 @@ const ManageMoviesPage = () => {
     if (window.confirm("Are you sure you want to delete this movie?")) {
       try {
         await deleteDoc(doc(firestore, "movies", id));
-        setMessage({ type: 'success', content: 'Movie deleted successfully!' });
+        setMessage({ type: "success", content: "Movie deleted successfully!" });
         fetchMovies();
       } catch (error) {
-        console.error('Error deleting movie: ', error);
-        setMessage({ type: 'error', content: `Error deleting movie: ${error.message}` });
+        console.error("Error deleting movie: ", error);
+        setMessage({
+          type: "error",
+          content: `Error deleting movie: ${error.message}`,
+        });
       }
     }
   };
@@ -130,7 +139,13 @@ const ManageMoviesPage = () => {
             </Link>
           </div>
           {message.content && (
-            <div className={`p-4 mb-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            <div
+              className={`p-4 mb-4 rounded-md ${
+                message.type === "success"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
               {message.content}
             </div>
           )}
@@ -151,21 +166,29 @@ const ManageMoviesPage = () => {
                 {movies.map((movie) => (
                   <tr key={movie.id} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-2">{movie.title}</td>
-                    <td className="px-4 py-2">{formatDate(movie.releaseDate)}</td>
+                    <td className="px-4 py-2">
+                      {formatDate(movie.releaseDate)}
+                    </td>
                     <td className="px-4 py-2">{movie.genre?.join(", ")}</td>
                     <td className="px-4 py-2">{movie.duration} min</td>
                     <td className="px-4 py-2">{movie.director}</td>
                     <td className="px-4 py-2">{movie.language}</td>
                     <td className="px-4 py-2">
-                      <button onClick={() => handleEdit(movie)} className="text-blue-600 hover:text-blue-800 mr-2">
+                      <button
+                        onClick={() => handleEdit(movie)}
+                        className="text-blue-600 hover:text-blue-800 mr-2"
+                      >
                         <FaEdit />
                       </button>
-                      <button onClick={() => handleDelete(movie.id)} className="text-red-600 hover:text-red-800 mr-2">
+                      <button
+                        onClick={() => handleDelete(movie.id)}
+                        className="text-red-600 hover:text-red-800 mr-2"
+                      >
                         <FaTrashAlt />
                       </button>
                       <Link
                         to={`/campaign-admin/manage-shows/${movie.id}`}
-                        className="block w-full bg-blue-500 text-white text-center px-2 py-1 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="block w-full text-center px-2 py-1 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       >
                         <FaFilm className="inline mr-1" /> Manage Shows
                       </Link>
@@ -178,7 +201,10 @@ const ManageMoviesPage = () => {
         </div>
 
         {editingMovie && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="my-modal">
+          <div
+            className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+            id="my-modal"
+          >
             <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
@@ -265,7 +291,12 @@ const ManageMoviesPage = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
                   <div>
-                    <label htmlFor="poster" className="block text-sm font-medium text-gray-700 mb-2">Poster:</label>
+                    <label
+                      htmlFor="poster"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Poster:
+                    </label>
                     <input
                       type="file"
                       id="poster"

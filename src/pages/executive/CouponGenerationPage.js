@@ -23,7 +23,7 @@ function CouponGeneration() {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [couponAmount, setCouponAmount] = useState("");
   const [executiveCode, setExecutiveCode] = useState("");
-  const [coupons, setCoupons] = useState([]);
+  // const [coupons, setCoupons] = useState([]); //FIXME: Not used anywhere, check if needed
   const [isGenerating, setIsGenerating] = useState(false);
   const [allowExecutiveAccess, setAllowExecutiveAccess] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -261,14 +261,17 @@ function CouponGeneration() {
         for (let i = 0; i < count; i++) {
           const couponData = {
             "amount-paid": amount,
-            coupon_code: `FLIX${Math.random().toString(36).substring(7).toUpperCase()}`,
+            coupon_code: `FLIX${Math.random()
+              .toString(36)
+              .substring(7)
+              .toUpperCase()}`,
             executiveCode: executiveCode,
             createdAt: new Date(),
             generated_date: serverTimestamp(),
             is_sold: false,
-            is_redeemed: false,  // New field
+            is_redeemed: false, // New field
             sale_date: null,
-            validity: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+            validity: new Date(Date.now() + 2592000000), // 30 days from now (30 * 24 * 60 * 60 * 1000 = 2592000000)
           };
           const newCouponRef = doc(couponsCollection);
           transaction.set(newCouponRef, couponData);
@@ -310,7 +313,7 @@ function CouponGeneration() {
       }
 
       const newTickets = await createCouponsTransaction(couponAmount, newTicketsNeeded);
-      setCoupons((prevTickets) => [...prevTickets, ...newTickets]);
+      // setCoupons((prevTickets) => [...prevTickets, ...newTickets]);
       setProgress(20);
 
       for (let i = 0; i < newTickets.length; i++) {
@@ -454,7 +457,7 @@ function CouponGeneration() {
               </button>
             </form>
           ) : (
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
               <p className="font-bold">Coupon Generation not allowed</p>
               <p>You are not currently authorized to generate coupons. Please contact your administrator for assistance.</p>
             </div>

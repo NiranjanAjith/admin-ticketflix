@@ -166,14 +166,14 @@ const AddTransactionPage = () => {
           <div className="px-4 py-5 sm:p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Coupon Transaction Form</h2>
             {!allowExecutiveAccess ? (
-              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+              <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
                 <p className="font-bold">Access Denied</p>
                 <p>You do not have permission to add transactions. Please contact your administrator for assistance.</p>
               </div>
             ) : (
               <>
                 {message.content && (
-                  <div className={`mb-4 p-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  <div className={`mb-4 p-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                     {message.content}
                   </div>
                 )}

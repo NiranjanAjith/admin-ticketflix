@@ -43,41 +43,42 @@ const AdminLogin = () => {
     }
   };
 
-  const handleToggle = () => {
-    navigate(routes.EXEC_LOGIN);
-  };
+  // const handleToggle = () => { // FIXME: AVOID SINGLE LINE FUNCTIONS
+  //   navigate(routes.EXEC_LOGIN);
+  // };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 to-black text-white">
       <nav className="bg-black bg-opacity-80 shadow-md">
         <div className="container mx-auto px-4 py-3 flex items-center">
-          <Film className="text-red-600 mr-2" size={32} />
-          <a href={routes.HOME} className="text-3xl font-bold text-red-600">TicketFlix</a>
+          <Film className="text-rose-600 mr-2" size={32} />
+          <a href={routes.HOME} className="text-3xl font-bold text-rose-600">TicketFlix</a>
         </div>
       </nav>
   
       <div className="flex-grow container mx-auto px-4 py-12 flex items-center justify-center">
         <div className="w-full max-w-md relative">
-          <div className="absolute inset-0 bg-red-600 transform -rotate-6 rounded-3xl shadow-2xl"></div>
+          <div className="absolute inset-0 bg-rose-600 transform -rotate-6 rounded-3xl shadow-2xl"></div>
           <div className="relative bg-gray-900 p-8 rounded-3xl shadow-xl backdrop-blur-sm border border-gray-800">
-            <h2 className="text-4xl font-bold mb-6 text-center text-red-500">Admin Access</h2>
+            <h2 className="text-4xl font-bold mb-6 text-center text-rose-500">Admin Access</h2>
             <p className="text-center mb-8 text-gray-300">Enter the backstage of cinema magic</p>
             
-            {/* Toggle Switch */}
-            <div className="flex items-center justify-center mb-6">
-              <span className="mr-3 text-red-500">Admin</span>
+            {/* Toggle Switch  ;; NO NEED FOR THIS
+            */}
+            {/* <div className="flex items-center justify-center mb-6">
+              <span className="mr-3 text-rose-500">Admin</span>
               <div
                 className="w-14 h-7 flex items-center bg-gray-300 rounded-full p-1 cursor-pointer"
                 onClick={handleToggle}
               >
                 <div
-                  className="bg-red-500 w-5 h-5 rounded-full shadow-md transform duration-300 ease-in-out"
+                  className="bg-rose-500 w-5 h-5 rounded-full shadow-md transform duration-300 ease-in-out"
                 ></div>
               </div>
               <span className="ml-3 text-gray-400">Executive</span>
-            </div>
+            </div> */}
 
-            {error && <div className="bg-red-500 text-white p-3 rounded mb-4 text-sm">{error}</div>}
+            {error && <div className="bg-rose-500 text-white p-3 rounded mb-4 text-sm">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-300">Email address</label>
@@ -86,7 +87,7 @@ const AdminLogin = () => {
                   <input
                     type="email"
                     id="email"
-                    className="w-full pl-10 pr-3 py-3 bg-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-300 text-white"
+                    className="w-full pl-10 pr-3 py-3 bg-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-300 text-white"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -102,7 +103,7 @@ const AdminLogin = () => {
                   <input
                     type="password"
                     id="password"
-                    className="w-full pl-10 pr-3 py-3 bg-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-300 text-white"
+                    className="w-full pl-10 pr-3 py-3 bg-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-300 text-white"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -113,7 +114,7 @@ const AdminLogin = () => {
               </div>
               <button
                 type="submit"
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:shadow-outline transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:shadow-outline transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
               >
                 Login to Dashboard
                 <ChevronRight className="ml-2" size={18} />
