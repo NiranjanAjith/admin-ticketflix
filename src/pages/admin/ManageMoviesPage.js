@@ -165,7 +165,7 @@ const ManageMoviesPage = () => {
                       </button>
                       <Link
                         to={`/campaign-admin/manage-shows/${movie.id}`}
-                        className="px-2 py-1 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="block w-full bg-blue-500 text-white text-center px-2 py-1 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       >
                         <FaFilm className="inline mr-1" /> Manage Shows
                       </Link>
