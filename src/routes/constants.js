@@ -10,6 +10,7 @@ const routes = {
   MANAGE_MOVIES: "/campaign-admin/movies",
   MANAGE_THEATRES: "/campaign-admin/theatres",
   MANAGE_EXECS: "/campaign-admin/manage-executives",
+  MANAGE_SHOWS:"/campaign-admin/manage-shows/:movieId?",
 
   EXEC_LOGIN: "/executive/login",
   EXEC_SIGNUP: "/executive/signup",
