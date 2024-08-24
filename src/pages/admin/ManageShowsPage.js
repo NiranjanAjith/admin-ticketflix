@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
   collection,
@@ -9,9 +9,10 @@ import {
   query,
   where,
   Timestamp,
+  updateDoc,
 } from "firebase/firestore";
 import { firestore } from "../../firebase";
-import { FaTrash, FaPlus } from "react-icons/fa";
+import { FaTrash, FaPlus, FaChair } from "react-icons/fa";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
@@ -27,14 +28,15 @@ const ManageShowsPage = () => {
   const [showEndDate, setShowEndDate] = useState("");
   const [showTimes, setShowTimes] = useState([{ hours: "12", minutes: "00" }]);
   const [message, setMessage] = useState({ type: "", content: "" });
+  const [selectedShow, setSelectedShow] = useState(null);
+  const [isManageSeatsModalOpen, setIsManageSeatsModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchMovies();
-    fetchTheaters();
-    fetchShows();
-  }, []);
+  // Filters
+  const [filterTheater, setFilterTheater] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [filterTime, setFilterTime] = useState("");
 
-  const fetchMovies = async () => {
+  const fetchMovies = useCallback(async () => {
     const moviesCollection = collection(firestore, "movies");
     const movieSnapshot = await getDocs(moviesCollection);
     const movieList = movieSnapshot.docs.map((doc) => ({
@@ -42,9 +44,9 @@ const ManageShowsPage = () => {
       ...doc.data(),
     }));
     setMovies(movieList);
-  };
+  }, []);
 
-  const fetchTheaters = async () => {
+  const fetchTheaters = useCallback(async () => {
     const theatersCollection = collection(firestore, "theatres");
     const theaterSnapshot = await getDocs(theatersCollection);
     const theaterList = theaterSnapshot.docs.map((doc) => ({
@@ -52,9 +54,9 @@ const ManageShowsPage = () => {
       ...doc.data(),
     }));
     setTheaters(theaterList);
-  };
+  }, []);
 
-  const fetchShows = async () => {
+  const fetchShows = useCallback(async () => {
     const showsCollection = collection(firestore, "shows");
     let showQuery = showsCollection;
     if (movieId) {
@@ -66,7 +68,13 @@ const ManageShowsPage = () => {
       ...doc.data(),
     }));
     setShows(showList);
-  };
+  }, [movieId]);
+
+  useEffect(() => {
+    fetchMovies();
+    fetchTheaters();
+    fetchShows();
+  }, [fetchMovies, fetchTheaters, fetchShows]);
 
   const handleAddShow = async (e) => {
     e.preventDefault();
@@ -79,6 +87,7 @@ const ManageShowsPage = () => {
       const startDate = new Date(showStartDate);
       const endDate = new Date(showEndDate);
       const theater = theaters.find((t) => t.id === selectedTheater);
+      const seatMatrix = theater["seat-matrix-layout"][selectedScreen];
 
       for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
         for (const time of showTimes) {
@@ -90,7 +99,7 @@ const ManageShowsPage = () => {
             theaterId: selectedTheater,
             screenName: selectedScreen,
             datetime: Timestamp.fromDate(showDateTime),
-            seatMatrix: theater["seat-matrix-layout"][selectedScreen],
+            seatMatrix: seatMatrix,
           };
 
           await addDoc(collection(firestore, "shows"), showData);
@@ -139,9 +148,100 @@ const ManageShowsPage = () => {
     setShowTimes(updatedShowTimes);
   };
 
-  const getMinDate = () => {
+  const getMinDate = useCallback(() => {
     const selectedMovieData = movies.find(m => m.id === selectedMovie);
     return selectedMovieData ? selectedMovieData.releaseDate.toDate().toISOString().split('T')[0] : '';
+  }, [movies, selectedMovie]);
+
+  const handleManageSeats = (show) => {
+    setSelectedShow(show);
+    setIsManageSeatsModalOpen(true);
+  };
+
+  const filteredShows = useMemo(() => {
+    return shows.filter((show) => {
+      const showDate = show.datetime.toDate();
+      return (
+        (!filterTheater || show.theaterId === filterTheater) &&
+        (!filterDate || showDate.toDateString() === new Date(filterDate).toDateString()) &&
+        (!filterTime || 
+          (showDate.getHours() === parseInt(filterTime.split(':')[0], 10) &&
+           showDate.getMinutes() === parseInt(filterTime.split(':')[1], 10)))
+      );
+    });
+  }, [shows, filterTheater, filterDate, filterTime]);
+
+  const ManageSeatsModal = ({ show, onClose }) => {
+    const [seatMatrix, setSeatMatrix] = useState(show.seatMatrix);
+  
+    const handleSeatToggle = (row, seatIndex) => {
+      setSeatMatrix((prevMatrix) => {
+        const newMatrix = JSON.parse(JSON.stringify(prevMatrix)); // Deep copy
+        newMatrix.matrix[row].seats[seatIndex] = !newMatrix.matrix[row].seats[seatIndex];
+        return newMatrix;
+      });
+    };
+  
+    const handleSave = async () => {
+      try {
+        const showRef = doc(firestore, "shows", show.id);
+        await updateDoc(showRef, { seatMatrix });
+        setMessage({ type: "success", content: "Seat matrix updated successfully!" });
+        fetchShows();
+        onClose();
+      } catch (error) {
+        console.error("Error updating seat matrix:", error);
+        setMessage({ type: "error", content: `Error updating seat matrix: ${error.message}` });
+      }
+    };
+  
+    // Sort the rows alphabetically
+    const sortedRows = useMemo(() => {
+      return Object.entries(seatMatrix.matrix).sort((a, b) => a[0].localeCompare(b[0]));
+    }, [seatMatrix]);
+  
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Manage Seats</h3>
+          <div className="overflow-x-auto">
+            <div className="inline-block min-w-full">
+              {sortedRows.map(([row, { seats, type }]) => (
+                <div key={row} className="flex mb-2">
+                  <span className="w-8 text-center">{row}</span>
+                  {seats.map((isAvailable, index) => (
+                    <button
+                      key={index}
+                      className={`w-8 h-8 m-1 rounded-md flex items-center justify-center ${
+                        isAvailable ? "bg-green-500" : "bg-red-500"
+                      }`}
+                      onClick={() => handleSeatToggle(row, index)}
+                    >
+                      <FaChair className="text-white" />
+                    </button>
+                  ))}
+                  <span className="ml-2">{type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end space-x-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -207,7 +307,7 @@ const ManageShowsPage = () => {
                   <option value="">Select a screen</option>
                   {theaters
                     .find((t) => t.id === selectedTheater)
-                    ["seat-matrix-layout"] &&
+                    ?.["seat-matrix-layout"] &&
                     Object.keys(
                       theaters.find((t) => t.id === selectedTheater)["seat-matrix-layout"]
                     ).map((screenName) => (
@@ -301,6 +401,32 @@ const ManageShowsPage = () => {
 
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4">Existing Shows</h3>
+          <div className="mb-4 flex space-x-4">
+            <select
+              value={filterTheater}
+              onChange={(e) => setFilterTheater(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            >
+              <option value="">All Theaters</option>
+              {theaters.map((theater) => (
+                <option key={theater.id} value={theater.id}>
+                  {theater["theatre-name"]}
+                </option>
+              ))}
+            </select>
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            />
+            <input
+              type="time"
+              value={filterTime}
+              onChange={(e) => setFilterTime(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full table-auto">
               <thead className="bg-gray-200">
@@ -313,13 +439,19 @@ const ManageShowsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {shows.map((show) => (
+                {filteredShows.map((show) => (
                   <tr key={show.id} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-2">{movies.find((m) => m.id === show.movieId)?.title}</td>
                     <td className="px-4 py-2">{theaters.find((t) => t.id === show.theaterId)?.["theatre-name"]}</td>
                     <td className="px-4 py-2">{show.screenName}</td>
                     <td className="px-4 py-2">{show.datetime.toDate().toLocaleString()}</td>
                     <td className="px-4 py-2">
+                      <button
+                        onClick={() => handleManageSeats(show)}
+                        className="text-blue-600 hover:text-blue-800 mr-2"
+                      >
+                        <FaChair />
+                      </button>
                       <button
                         onClick={() => handleDeleteShow(show.id)}
                         className="text-red-600 hover:text-red-800"
@@ -335,6 +467,12 @@ const ManageShowsPage = () => {
         </div>
       </main>
       <Footer />
+      {isManageSeatsModalOpen && (
+        <ManageSeatsModal
+          show={selectedShow}
+          onClose={() => setIsManageSeatsModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
