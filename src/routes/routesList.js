@@ -22,6 +22,13 @@ import ViewCoupon from "../pages/qr_verification/ViewCoupon";
 import ViewTicket from "../pages/qr_verification/ViewTicket";
 import ManageShowsPage from "../pages/admin/ManageShowsPage";
 
+import PrebookingForm from "../pages/prebook/PrebookForm";
+import PaymentGateway from "../pages/prebook/Gateway";
+import SuccessPage from "../pages/prebook/Success";
+import FailurePage from "../pages/prebook/Failure";
+import TermsAndConditions from "../pages/components/TermsAndConditions";
+import PrivacyPolicy from "../pages/components/PrivacyPolicy";
+
 const AdminRoutes = () => {
   const AdminPrivateRoute = ({ children }) => {
     const [authChecked, setAuthChecked] = useState(false);
@@ -162,18 +169,54 @@ const ExecutiveRoutes = () => {
 
 const HomeRoutes = () => {
   return [<Route path="/" element={<LandingPage></LandingPage>} />,
-    <Route
-  path={routes.VIEW_COUPON}
-  element={
-      <ViewCoupon />
-  }
-/>,
   <Route
-  path={routes.VIEW_TICKET}
-  element={
+    path={routes.VIEW_COUPON}
+    element={
+      <ViewCoupon />
+    }
+  />,
+  <Route
+    path={routes.VIEW_TICKET}
+    element={
       <ViewTicket />
-  }
-/>
+    }
+  />,
+  <Route
+    path={routes.PREBOOK}
+    element={
+      <PrebookingForm />
+    }
+  />,
+  <Route
+    path={routes.PAYMENT}
+    element={
+      <PaymentGateway />
+    }
+  />,
+  <Route
+    path={routes.SUCCESS}
+    element={
+      <SuccessPage />
+    }
+  />,
+  <Route
+    path={routes.FAILURE}
+    element={
+      <FailurePage />
+    }
+  />,
+  <Route
+    path='/terms-and-conditions'
+    element={
+      <TermsAndConditions />
+    }
+  />,
+  <Route
+    path='/privacy-policy'
+    element={
+      <PrivacyPolicy />
+    }
+  />  
   ];
 
 }
