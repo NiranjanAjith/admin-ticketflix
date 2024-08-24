@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// import { FaTicketAlt } from 'react-icons/fa'; // FaPhone, FaEnvelope, FaFacebookF, FaTwitter, FaInstagram, 
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import '../index.css';
 import Header from "./components/Header";
 import Footer from './components/Footer';
@@ -15,6 +15,7 @@ const moviePosters = [
 
 function LandingPage() {
   const [currentPosterIndex, setCurrentPosterIndex] = useState(0);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -22,6 +23,11 @@ function LandingPage() {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Function to handle button click and navigate
+  const handlePrebookClick = () => {
+    navigate('/pre-book'); // Replace '/pre-book' with the path you want to navigate to
+  };
 
   return (
     <div className="App min-h-screen flex flex-col">
@@ -31,7 +37,6 @@ function LandingPage() {
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-center">
               <div className="md:w-1/2 mb-8 md:mb-0 md:pr-8 flex flex-col items-center md:items-start">
-                {" "}
                 {/* Added flex and alignment */}
                 <h2 className="text-4xl font-bold text-gray-800 mb-4 text-center md:text-left">
                   Turkish Tharkkam
@@ -43,9 +48,11 @@ function LandingPage() {
                   exclusively for "Turkish Tharkkam" this festival season.
                 </p>
                 <div className="flex justify-center w-full md:justify-start">
-                  {" "}
                   {/* Center button container */}
-                  <button className="bg-blue-500 text-white font-bold py-2 px-6 rounded-full hover:bg-blue-600 transition duration-300">
+                  <button
+                    onClick={handlePrebookClick} // Attach the click handler
+                    className="bg-blue-500 text-white font-bold py-2 px-6 rounded-full hover:bg-blue-600 transition duration-300"
+                  >
                     Pre-book
                   </button>
                 </div>
