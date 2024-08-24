@@ -11,7 +11,7 @@ const Footer = () => {
                         <span className="text-xl font-bold text-red-600">TicketFlix</span>
                     </div>
                     <div className="text-center md:text-right">
-                        <p className="text-sm text-gray-400">&copy; 2024 TicketFlix Admin. All rights reserved.</p>
+                        <p className="text-sm text-gray-400">&copy; 2024 TicketFlix. All rights reserved.</p>
                         <p className="text-sm text-gray-400 mt-1">Powered by Your Company Name</p>
                     </div>
                 </div>

@@ -1,19 +1,87 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if true;
+    function getUserEmail() {
+      return request.auth.token.email;
+    }
+
+    function isAdmin() {
+      // Allow reading the admins collection to check if the user is an admin
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/admins/$(getUserEmail())) == true;
+    }
+    
+    function isExecutive() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/executives/$(getUserEmail())) == true;
+    }
+
+    function isUser() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(getUserEmail())) == true;
+    }
+		
+    // Allow authenticated users to read their own data and admins to read any data
+    match /Users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow update: if isAuthenticated() && 
+                    request.resource.data.keys().hasAll(['name', 'email']) &&
+                    request.resource.data.email == getUserEmail();
+      allow create: if true;
+    }
+
+    // Coupons collection
+    match /coupons/{couponId} {
+      allow read: if isAuthenticated() || isAdmin();
+      allow create, update, delete: if isExecutive() || isAdmin();
+    }
+
+    // Coupon transactions collection
+    match /coupon-transactions/{transactionId} {
+      allow read: if isAdmin() || isExecutive();
+      allow write: if isExecutive() || isAdmin();
+    }
+
+    // Executives collection
+    match /executives/{executiveId} {
+      allow read: if isAuthenticated() || isAdmin();
+      allow create: if true;
+      allow update: if isExecutive();
+    }
+
+    // Admins collection
+    match /admins/{adminId} {
+      allow read: if isAuthenticated(); // Allow read access to all authenticated users to verify admin status
+      allow write: if isAdmin();
+    }
+
+    // Movies collection
+    match /movies/{movieId} {
+      allow read: if isAuthenticated() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Shows collection
+    match /shows/{showId} {
+      allow read: if isAuthenticated() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Theatres collection
+    match /theatres/{theatreId} {
+      allow read: if isAuthenticated() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // userTickets collection
+    match /userTickets/{ticketId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+    	// allow read: if isAdmin();
     }
   }
 }

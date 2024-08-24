@@ -1,11 +1,13 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../../firebase';
+import { auth, firestore } from '../../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { AuthContext } from '../../context/AuthContext';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { AuthContext } from "../../context/AuthContext";
 import { Film, User, Lock, ChevronRight } from 'lucide-react';
+import routes from '../../routes/constants';
 
-const Login = () => {
+const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
@@ -13,19 +15,36 @@ const Login = () => {
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
+    if (user) navigate(routes.ADMIN_DASHBOARD);
   }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check if the user is an admin
+      const adminRef = collection(firestore, 'admins');
+      const q = query(adminRef, where('email', '==', user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        throw new Error('Invalid admin credentials');
+      }
+
+      // If we get here, the user is an admin
+      navigate(routes.ADMIN_DASHBOARD);
     } catch (error) {
       setError(error.message);
+      // Sign out the user if they're not an admin
+      await auth.signOut();
     }
+  };
+
+  const handleToggle = () => {
+    navigate(routes.EXEC_LOGIN);
   };
 
   return (
@@ -33,16 +52,31 @@ const Login = () => {
       <nav className="bg-black bg-opacity-80 shadow-md">
         <div className="container mx-auto px-4 py-3 flex items-center">
           <Film className="text-red-600 mr-2" size={32} />
-          <a href="/" className="text-3xl font-bold text-red-600">TicketFlix</a>
+          <a href={routes.HOME} className="text-3xl font-bold text-red-600">TicketFlix</a>
         </div>
       </nav>
-
+  
       <div className="flex-grow container mx-auto px-4 py-12 flex items-center justify-center">
         <div className="w-full max-w-md relative">
           <div className="absolute inset-0 bg-red-600 transform -rotate-6 rounded-3xl shadow-2xl"></div>
           <div className="relative bg-gray-900 p-8 rounded-3xl shadow-xl backdrop-blur-sm border border-gray-800">
             <h2 className="text-4xl font-bold mb-6 text-center text-red-500">Admin Access</h2>
             <p className="text-center mb-8 text-gray-300">Enter the backstage of cinema magic</p>
+            
+            {/* Toggle Switch */}
+            <div className="flex items-center justify-center mb-6">
+              <span className="mr-3 text-red-500">Admin</span>
+              <div
+                className="w-14 h-7 flex items-center bg-gray-300 rounded-full p-1 cursor-pointer"
+                onClick={handleToggle}
+              >
+                <div
+                  className="bg-red-500 w-5 h-5 rounded-full shadow-md transform duration-300 ease-in-out"
+                ></div>
+              </div>
+              <span className="ml-3 text-gray-400">Executive</span>
+            </div>
+
             {error && <div className="bg-red-500 text-white p-3 rounded mb-4 text-sm">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
@@ -85,13 +119,10 @@ const Login = () => {
                 <ChevronRight className="ml-2" size={18} />
               </button>
             </form>
-            <div className="mt-6 text-center">
-              <a href="#forgot" className="text-sm text-red-400 hover:text-red-300 transition-colors duration-300">Forgot password?</a>
-            </div>
           </div>
         </div>
       </div>
-
+  
       <footer className="bg-black bg-opacity-80 py-4 mt-auto">
         <div className="container mx-auto px-4 text-center text-gray-400">
           <p>&copy; 2024 TicketFlix. All rights reserved.</p>
@@ -101,4 +132,4 @@ const Login = () => {
   );
 }
 
-export default Login;
+export default AdminLogin;
