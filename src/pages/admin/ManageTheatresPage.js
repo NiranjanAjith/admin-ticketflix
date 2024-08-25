@@ -1,6 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, query, limit, startAfter, where, addDoc } from 'firebase/firestore';
+import { Link } from 'react-router-dom';
+import { collection, getDocs, doc, updateDoc, deleteDoc, query, limit, startAfter, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { firestore, storage } from '../../firebase';
 import { FaTrashAlt, FaTrash, FaChair, FaSearch, FaEdit, FaPlus } from 'react-icons/fa';
@@ -43,7 +43,6 @@ const ManageTheatresPage = () => {
     const [lastVisible, setLastVisible] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [formErrors, setFormErrors] = useState({});
-    const [isAdding, setIsAdding] = useState(false);
     const [imageFile, setImageFile] = useState(null);
 
     const theatresCollection = collection(firestore, "theatres");
@@ -123,25 +122,6 @@ const ManageTheatresPage = () => {
     const handleEdit = (theater) => {
         setEditingTheater(theater);
         setFormErrors({});
-        setIsAdding(false);
-    };
-
-    const handleAdd = () => {
-        setEditingTheater({
-            'theatre-name': '',
-            description: '',
-            owner: '',
-            phone: '',
-            email: '',
-            district: '',
-            city: '',
-            'seat-matrix-layout': {
-                'screen-1': { rows: 0, columns: 0, matrix: {}, capacity: 0 }
-            },
-            imageUrl: ''
-        });
-        setFormErrors({});
-        setIsAdding(true);
     };
 
     const validateForm = () => {
@@ -169,21 +149,15 @@ const ManageTheatresPage = () => {
                 imageUrl
             };
 
-            if (isAdding) {
-                await addDoc(theatresCollection, theaterData);
-                setTheaters([...theaters, theaterData]);
-            } else {
-                const theaterRef = doc(firestore, 'theatres', editingTheater.id);
-                await updateDoc(theaterRef, theaterData);
-                setTheaters(theaters.map(theater =>
-                    theater.id === editingTheater.id ? theaterData : theater
-                ));
-            }
+            const theaterRef = doc(firestore, 'theatres', editingTheater.id);
+            await updateDoc(theaterRef, theaterData);
+            setTheaters(theaters.map(theater =>
+                theater.id === editingTheater.id ? theaterData : theater
+            ));
             setEditingTheater(null);
-            setIsAdding(false);
             setImageFile(null);
         } catch (err) {
-            setError(`Failed to ${isAdding ? 'add' : 'update'} theater`);
+            setError('Failed to update theater');
             console.error(err);
         }
         setLoading(false);
@@ -322,33 +296,6 @@ const ManageTheatresPage = () => {
         }
     };
 
-    // const renderSeatLayout = (screen, layout) => { // FIXME: ?? FUNCTION NOT USED ANYWHERE IN FILE
-    //     const rows = layout.rows;
-    //     const columns = layout.columns;
-    //     const seatMatrix = [];
-    //     for (let i = 0; i < rows; i++) {
-    //       const row = [];
-    //       for (let j = 0; j < columns; j++) {
-    //         row.push(
-    //           <div key={`${i}-${j}`} className="inline-block m-1">
-    //             <FaChair className="text-blue-500" />
-    //           </div>
-    //         );
-    //       }
-    //       seatMatrix.push(
-    //         <div key={i} className="flex justify-center">
-    //           {row}
-    //         </div>
-    //       );
-    //     }
-    //     return (
-    //       <div className="mt-4 p-4 border rounded-md">
-    //         <h6 className="font-medium text-gray-800 mb-2">{screen} Layout</h6>
-    //         {seatMatrix}
-    //       </div>
-    //     );
-    // };
-
     return (
         <div className="flex flex-col min-h-screen bg-gray-100">
             <Header />
@@ -356,12 +303,12 @@ const ManageTheatresPage = () => {
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Theatre List</h2>
-                        <button
-                            onClick={handleAdd}
+                        <Link 
+                            to="/campaign-admin/theatres/add-theatre"
                             className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
                         >
                             <FaPlus className="inline mr-2" /> Add Theatre
-                        </button>
+                        </Link>
                     </div>
                     <form onSubmit={handleSearch} className="mb-4">
                         <div className="flex">
@@ -382,7 +329,7 @@ const ManageTheatresPage = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full table-auto">
                             <thead className="bg-gray-200">
-                            <tr>
+                                <tr>
                                     <th className="px-4 py-2 text-left">Name</th>
                                     <th className="px-4 py-2 text-left">Owner</th>
                                     <th className="px-4 py-2 text-left">Contact</th>
@@ -431,7 +378,7 @@ const ManageTheatresPage = () => {
                     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="my-modal">
                         <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
                             <div className="mt-3">
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">{isAdding ? 'Add Theatre' : 'Edit Theatre'}</h3>
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Theatre</h3>
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div>
                                         <label htmlFor="theatre-name" className="block text-sm font-medium text-gray-700">Theater Name</label>
@@ -630,7 +577,7 @@ const ManageTheatresPage = () => {
                                                 <button 
                                                     type="button" 
                                                     onClick={() => removeScreen(screen)}
-                                                     className="mt-4 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                                    className="mt-4 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                                 >
                                                     <FaTrash className="mr-2" /> Remove Screen
                                                 </button>
@@ -648,10 +595,7 @@ const ManageTheatresPage = () => {
                                     <div className="flex justify-end space-x-3 mt-6">
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setEditingTheater(null);
-                                                setIsAdding(false);
-                                            }}
+                                            onClick={() => setEditingTheater(null)}
                                             className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
                                         >
                                             Cancel
@@ -660,10 +604,10 @@ const ManageTheatresPage = () => {
                                             type="submit"
                                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         >
-                                            {isAdding ? 'Add Theatre' : 'Update Theatre'}
+                                            Update Theatre
                                         </button>
                                     </div>
-                                </form>
+                                    </form>
                             </div>
                         </div>
                     </div>

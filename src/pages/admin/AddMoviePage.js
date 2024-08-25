@@ -18,6 +18,7 @@ const AddMoviePage = () => {
         director: '',
         language: '',
         ageRating: '',
+        prebook_price: '',
     });
     const [poster, setPoster] = useState(null);
     const [message, setMessage] = useState({ type: '', content: '' });
@@ -32,7 +33,7 @@ const AddMoviePage = () => {
         } else {
             setMovie(prevState => ({
                 ...prevState,
-                [name]: name === 'duration' ? parseFloat(value) : value
+                [name]: name === 'duration' || name === 'prebook_price' ? parseFloat(value) : value
             }));
         }
     };
@@ -96,6 +97,7 @@ const AddMoviePage = () => {
                 director: '',
                 language: '',
                 ageRating: '',
+                prebook_price: '',
             });
             setPoster(null);
             document.getElementById('poster').value = '';
@@ -160,6 +162,20 @@ const AddMoviePage = () => {
                         <div>
                             <label htmlFor="ageRating" className="block text-sm font-medium text-gray-700">Age Rating:</label>
                             <input type="text" id="ageRating" name="ageRating" value={movie.ageRating} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
+                        </div>
+                        <div>
+                            <label htmlFor="prebook_price" className="block text-sm font-medium text-gray-700">Prebook Price:</label>
+                            <input 
+                                type="number" 
+                                id="prebook_price" 
+                                name="prebook_price" 
+                                value={movie.prebook_price} 
+                                onChange={handleChange} 
+                                required 
+                                step="0.01" 
+                                min="0" 
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" 
+                            />
                         </div>
                         <div className="mt-6">
                             <label htmlFor="poster" className="block text-sm font-medium text-gray-700 mb-2">Poster:</label>

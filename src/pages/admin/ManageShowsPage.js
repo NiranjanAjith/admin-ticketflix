@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   collection,
@@ -12,7 +12,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { firestore } from "../../firebase";
-import { FaTrash, FaPlus, FaChair } from "react-icons/fa";
+import { FaTrash, FaPlus, FaChair, FaEdit } from "react-icons/fa";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
@@ -22,19 +22,18 @@ const ManageShowsPage = () => {
   const [theaters, setTheaters] = useState([]);
   const [shows, setShows] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(movieId || "");
-  const [selectedTheater, setSelectedTheater] = useState("");
-  const [selectedScreen, setSelectedScreen] = useState("");
-  const [showStartDate, setShowStartDate] = useState("");
-  const [showEndDate, setShowEndDate] = useState("");
-  const [showTimes, setShowTimes] = useState([{ hours: "12", minutes: "00" }]);
   const [message, setMessage] = useState({ type: "", content: "" });
+  const [screenSelections, setScreenSelections] = useState({});
+  const [showtimes, setShowtimes] = useState({});
   const [selectedShow, setSelectedShow] = useState(null);
-  const [isManageSeatsModalOpen, setIsManageSeatsModalOpen] = useState(false);
-
-  // Filters
-  const [filterTheater, setFilterTheater] = useState("");
-  const [filterDate, setFilterDate] = useState("");
-  const [filterTime, setFilterTime] = useState("");
+  const [filters, setFilters] = useState({
+    theater: "",
+    movie: "",
+    date: "",
+    time: "",
+  });
+  const [editingShow, setEditingShow] = useState(null);
+  const [separateTicketPrices, setSeparateTicketPrices] = useState({});
 
   const fetchMovies = useCallback(async () => {
     const moviesCollection = collection(firestore, "movies");
@@ -76,48 +75,274 @@ const ManageShowsPage = () => {
     fetchShows();
   }, [fetchMovies, fetchTheaters, fetchShows]);
 
+  const handleTheaterChange = (e) => {
+    const theaterId = e.target.value;
+    const isChecked = e.target.checked;
+    
+    if (isChecked) {
+      setScreenSelections(prev => ({
+        ...prev,
+        [theaterId]: {}
+      }));
+    } else {
+      setScreenSelections(prev => {
+        const { [theaterId]: _, ...rest } = prev;
+        return rest;
+      });
+      setShowtimes(prev => {
+        const { [theaterId]: _, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  const handleScreenChange = (theaterId, screenName) => {
+    setScreenSelections(prev => ({
+      ...prev,
+      [theaterId]: {
+        ...prev[theaterId],
+        [screenName]: !prev[theaterId]?.[screenName]
+      }
+    }));
+
+    if (!screenSelections[theaterId]?.[screenName]) {
+      setShowtimes(prev => ({
+        ...prev,
+        [theaterId]: {
+          ...prev[theaterId],
+          [screenName]: {
+            startDate: '',
+            endDate: '',
+            showtimes: []
+          }
+        }
+      }));
+    }
+  };
+
+  const handleSeparateTicketPricesChange = (theaterId, screenName) => {
+    setSeparateTicketPrices((prev) => ({
+      ...prev,
+      [theaterId]: {
+        ...prev[theaterId],
+        [screenName]: !prev[theaterId]?.[screenName],
+      },
+    }));
+
+    if (!separateTicketPrices[theaterId]?.[screenName]) {
+      const startDate = new Date(showtimes[theaterId]?.[screenName]?.startDate);
+      const endDate = new Date(showtimes[theaterId]?.[screenName]?.endDate);
+      const dailyShowtimes = [];
+
+      for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+        dailyShowtimes.push({
+          date: date.toISOString().split('T')[0],
+          showtimes: [],
+        });
+      }
+
+      setShowtimes((prev) => ({
+        ...prev,
+        [theaterId]: {
+          ...prev[theaterId],
+          [screenName]: {
+            ...prev[theaterId][screenName],
+            dailyShowtimes,
+          },
+        },
+      }));
+    }
+  };
+
+  const addShowtime = (theaterId, screenName, dateIndex = null) => {
+    const theater = theaters.find(t => t.id === theaterId);
+    const seatTypes = new Set();
+    Object.values(theater['seat-matrix-layout'][screenName].matrix).forEach(row => {
+      seatTypes.add(row.type);
+    });
+
+    const newShowtime = {
+      time: '',
+      ticketPrices: Array.from(seatTypes).reduce((acc, type) => ({...acc, [type]: ''}), {})
+    };
+
+    setShowtimes(prev => {
+      const updatedShowtimes = {...prev};
+      if (separateTicketPrices[theaterId]?.[screenName]) {
+        // If separate ticket prices are enabled
+        if (!updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes) {
+          updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes = [];
+        }
+        updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes.push(newShowtime);
+      } else {
+        // If common ticket prices are used
+        if (!updatedShowtimes[theaterId]) {
+          updatedShowtimes[theaterId] = {};
+        }
+        if (!updatedShowtimes[theaterId][screenName]) {
+          updatedShowtimes[theaterId][screenName] = { showtimes: [] };
+        }
+        updatedShowtimes[theaterId][screenName].showtimes.push(newShowtime);
+      }
+      return updatedShowtimes;
+    });
+  };
+
+  const handleShowtimeChange = (theaterId, screenName, dateIndex, showtimeIndex, field, value) => {
+    setShowtimes(prev => {
+      const updatedShowtimes = {...prev};
+      if (separateTicketPrices[theaterId]?.[screenName]) {
+        // If separate ticket prices are enabled
+        updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes[showtimeIndex][field] = value;
+      } else {
+        // If common ticket prices are used
+        updatedShowtimes[theaterId][screenName].showtimes[showtimeIndex][field] = value;
+      }
+      return updatedShowtimes;
+    });
+  };
+
+  const handleTicketPriceChange = (theaterId, screenName, dateIndex, showtimeIndex, seatType, price) => {
+    setShowtimes(prev => {
+      const updatedShowtimes = {...prev};
+      if (separateTicketPrices[theaterId]?.[screenName]) {
+        // If separate ticket prices are enabled
+        updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes[showtimeIndex].ticketPrices[seatType] = price;
+      } else {
+        // If common ticket prices are used
+        updatedShowtimes[theaterId][screenName].showtimes[showtimeIndex].ticketPrices[seatType] = price;
+      }
+      return updatedShowtimes;
+    });
+  };
+
+  const removeShowtime = (theaterId, screenName, dateIndex, showtimeIndex) => {
+    setShowtimes(prev => {
+      const updatedShowtimes = {...prev};
+      if (separateTicketPrices[theaterId]?.[screenName]) {
+        // If separate ticket prices are enabled
+        updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes.splice(showtimeIndex, 1);
+      } else {
+        // If common ticket prices are used
+        updatedShowtimes[theaterId][screenName].showtimes.splice(showtimeIndex, 1);
+      }
+      return updatedShowtimes;
+    });
+  };
+
+  const handleDateChange = (theaterId, screenName, field, value) => {
+    setShowtimes(prev => {
+      const updatedShowtimes = {
+        ...prev,
+        [theaterId]: {
+          ...prev[theaterId],
+          [screenName]: {
+            ...prev[theaterId][screenName],
+            [field]: value
+          }
+        }
+      };
+  
+      // If separate ticket prices are enabled, update the daily showtimes
+      if (separateTicketPrices[theaterId]?.[screenName]) {
+        const startDate = new Date(field === 'startDate' ? value : updatedShowtimes[theaterId][screenName].startDate);
+        const endDate = new Date(field === 'endDate' ? value : updatedShowtimes[theaterId][screenName].endDate);
+        const dailyShowtimes = [];
+  
+        for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+          dailyShowtimes.push({
+            date: date.toISOString().split('T')[0],
+            showtimes: [],
+          });
+        }
+  
+        updatedShowtimes[theaterId][screenName].dailyShowtimes = dailyShowtimes;
+      }
+  
+      return updatedShowtimes;
+    });
+  };
+
   const handleAddShow = async (e) => {
     e.preventDefault();
-    if (!selectedMovie || !selectedTheater || !selectedScreen || !showStartDate || !showEndDate || showTimes.length === 0) {
-      setMessage({ type: "error", content: "Please fill in all fields and add at least one show time." });
+    if (!selectedMovie) {
+      setMessage({ type: "error", content: "Please select a movie." });
       return;
     }
 
     try {
-      const startDate = new Date(showStartDate);
-      const endDate = new Date(showEndDate);
-      const theater = theaters.find((t) => t.id === selectedTheater);
-      const seatMatrix = theater["seat-matrix-layout"][selectedScreen];
+      const showsPromises = Object.entries(screenSelections).flatMap(([theaterId, screens]) => 
+        Object.entries(screens).flatMap(([screenName, isSelected]) => {
+          if (isSelected && showtimes[theaterId] && showtimes[theaterId][screenName]) {
+            const { startDate, endDate } = showtimes[theaterId][screenName];
+            if (!startDate || !endDate) {
+              throw new Error(`Start date and end date are required for ${screenName}`);
+            }
+            
+            if (separateTicketPrices[theaterId]?.[screenName]) {
+              // Handle separate ticket prices case
+              return showtimes[theaterId][screenName].dailyShowtimes.flatMap(day => 
+                day.showtimes.map(async (showtime) => {
+                  const [hours, minutes] = showtime.time.split(':');
+                  const showtimeDate = new Date(day.date);
+                  showtimeDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
 
-      for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-        for (const time of showTimes) {
-          const showDateTime = new Date(date);
-          showDateTime.setHours(parseInt(time.hours, 10), parseInt(time.minutes, 10));
+                  if (isNaN(showtimeDate.getTime())) {
+                    throw new Error(`Invalid showtime: ${showtime.time}`);
+                  }
 
-          const showData = {
-            movieId: selectedMovie,
-            theaterId: selectedTheater,
-            screenName: selectedScreen,
-            datetime: Timestamp.fromDate(showDateTime),
-            seatMatrix: seatMatrix,
-          };
+                  const showData = {
+                    movieId: selectedMovie,
+                    theaterId,
+                    screenName,
+                    datetime: Timestamp.fromDate(showtimeDate),
+                    ticketPrices: showtime.ticketPrices,
+                    seatMatrix: theaters.find(t => t.id === theaterId)['seat-matrix-layout'][screenName]
+                  };
+                  return addDoc(collection(firestore, 'shows'), showData);
+                })
+              );
+            } else {
+              // Handle common ticket prices case
+              return showtimes[theaterId][screenName].showtimes.map(async (showtime) => {
+                const [hours, minutes] = showtime.time.split(':');
+                const showtimeDate = new Date(startDate);
+                showtimeDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
 
-          await addDoc(collection(firestore, "shows"), showData);
-        }
-      }
+                if (isNaN(showtimeDate.getTime())) {
+                  throw new Error(`Invalid showtime: ${showtime.time}`);
+                }
 
-      setMessage({ type: "success", content: "Shows added successfully!" });
+                const showData = {
+                  movieId: selectedMovie,
+                  theaterId,
+                  screenName,
+                  datetime: Timestamp.fromDate(showtimeDate),
+                  ticketPrices: showtime.ticketPrices,
+                  seatMatrix: theaters.find(t => t.id === theaterId)['seat-matrix-layout'][screenName]
+                };
+                return addDoc(collection(firestore, 'shows'), showData);
+              });
+            }
+          }
+          return [];
+        })
+      );
+
+      await Promise.all(showsPromises);
+      
+      setMessage({ type: 'success', content: 'Shows added successfully!' });
+      setScreenSelections({});
+      setShowtimes({});
       fetchShows();
-      // Reset form fields except for the selected movie
-      setSelectedTheater("");
-      setSelectedScreen("");
-      setShowStartDate("");
-      setShowEndDate("");
-      setShowTimes([{ hours: "12", minutes: "00" }]);
     } catch (error) {
-      console.error("Error adding shows: ", error);
-      setMessage({ type: "error", content: `Error adding shows: ${error.message}` });
+      console.error('Error adding shows: ', error);
+      setMessage({ type: 'error', content: `Error adding shows: ${error.message}` });
     }
+  };
+
+  const handleManageSeats = (show) => {
+    setSelectedShow(show);
   };
 
   const handleDeleteShow = async (showId) => {
@@ -133,115 +358,56 @@ const ManageShowsPage = () => {
     }
   };
 
-  const handleAddShowTime = () => {
-    setShowTimes([...showTimes, { hours: "12", minutes: "00" }]);
+  const handleUpdateSeatMatrix = async (showId, newSeatMatrix) => {
+    try {
+      const showRef = doc(firestore, "shows", showId);
+      await updateDoc(showRef, { seatMatrix: newSeatMatrix });
+      setMessage({ type: "success", content: "Seat matrix updated successfully!" });
+      fetchShows();
+    } catch (error) {
+      console.error("Error updating seat matrix:", error);
+      setMessage({ type: "error", content: `Error updating seat matrix: ${error.message}` });
+    }
   };
 
-  const handleShowTimeChange = (index, field, value) => {
-    const updatedShowTimes = [...showTimes];
-    updatedShowTimes[index][field] = value;
-    setShowTimes(updatedShowTimes);
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleRemoveShowTime = (index) => {
-    const updatedShowTimes = showTimes.filter((_, i) => i !== index);
-    setShowTimes(updatedShowTimes);
-  };
-
-  const getMinDate = useCallback(() => {
-    const selectedMovieData = movies.find(m => m.id === selectedMovie);
-    return selectedMovieData ? selectedMovieData.releaseDate.toDate().toISOString().split('T')[0] : '';
-  }, [movies, selectedMovie]);
-
-  const handleManageSeats = (show) => {
-    setSelectedShow(show);
-    setIsManageSeatsModalOpen(true);
-  };
-
-  const filteredShows = useMemo(() => {
-    return shows.filter((show) => {
-      const showDate = show.datetime.toDate();
-      return (
-        (!filterTheater || show.theaterId === filterTheater) &&
-        (!filterDate || showDate.toDateString() === new Date(filterDate).toDateString()) &&
-        (!filterTime || 
-          (showDate.getHours() === parseInt(filterTime.split(':')[0], 10) &&
-           showDate.getMinutes() === parseInt(filterTime.split(':')[1], 10)))
-      );
-    });
-  }, [shows, filterTheater, filterDate, filterTime]);
-
-  const ManageSeatsModal = ({ show, onClose }) => {
-    const [seatMatrix, setSeatMatrix] = useState(show.seatMatrix);
-  
-    const handleSeatToggle = (row, seatIndex) => {
-      setSeatMatrix((prevMatrix) => {
-        const newMatrix = JSON.parse(JSON.stringify(prevMatrix)); // Deep copy
-        newMatrix.matrix[row].seats[seatIndex] = !newMatrix.matrix[row].seats[seatIndex];
-        return newMatrix;
-      });
-    };
-  
-    const handleSave = async () => {
-      try {
-        const showRef = doc(firestore, "shows", show.id);
-        await updateDoc(showRef, { seatMatrix });
-        setMessage({ type: "success", content: "Seat matrix updated successfully!" });
-        fetchShows();
-        onClose();
-      } catch (error) {
-        console.error("Error updating seat matrix:", error);
-        setMessage({ type: "error", content: `Error updating seat matrix: ${error.message}` });
-      }
-    };
-  
-    // Sort the rows alphabetically
-    const sortedRows = useMemo(() => {
-      return Object.entries(seatMatrix.matrix).sort((a, b) => a[0].localeCompare(b[0]));
-    }, [seatMatrix]);
-  
+  const filteredShows = shows.filter((show) => {
+    const showDate = show.datetime.toDate();
     return (
-      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Manage Seats</h3>
-          <div className="overflow-x-auto">
-            <div className="inline-block min-w-full">
-              {sortedRows.map(([row, { seats, type }]) => (
-                <div key={row} className="flex mb-2">
-                  <span className="w-8 text-center">{row}</span>
-                  {seats.map((isAvailable, index) => (
-                    <button
-                      key={index}
-                      className={`w-8 h-8 m-1 rounded-md flex items-center justify-center ${
-                        isAvailable ? "bg-green-500" : "bg-red-500"
-                      }`}
-                      onClick={() => handleSeatToggle(row, index)}
-                    >
-                      <FaChair className="text-white" />
-                    </button>
-                  ))}
-                  <span className="ml-2">{type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="mt-4 flex justify-end space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
+      (!filters.theater || show.theaterId === filters.theater) &&
+      (!filters.movie || show.movieId === filters.movie) &&
+      (!filters.date ||
+        showDate.toISOString().split("T")[0] === filters.date) &&
+      (!filters.time ||
+        showDate.toTimeString().slice(0, 5) === filters.time)
     );
+  });
+
+  const handleEditShow = (show) => {
+    setEditingShow(show);
+  };
+
+  const handleUpdateShow = async (e) => {
+    e.preventDefault();
+    try {
+      const showRef = doc(firestore, "shows", editingShow.id);
+      await updateDoc(showRef, {
+        ticketPrices: editingShow.ticketPrices,
+      });
+      setMessage({ type: "success", content: "Show updated successfully!" });
+      setEditingShow(null);
+      fetchShows();
+    } catch (error) {
+      console.error("Error updating show: ", error);
+      setMessage({
+        type: "error",
+        content: `Error updating show: ${error.message}`,
+      });
+    }
   };
 
   return (
@@ -255,7 +421,7 @@ const ManageShowsPage = () => {
               {message.content}
             </div>
           )}
-          <form onSubmit={handleAddShow} className="space-y-4">
+          <form onSubmit={handleAddShow} className="space-y-6">
             <div>
               <label htmlFor="movie" className="block text-sm font-medium text-gray-700">
                 Movie:
@@ -265,7 +431,6 @@ const ManageShowsPage = () => {
                 value={selectedMovie}
                 onChange={(e) => setSelectedMovie(e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                disabled={!!movieId}
               >
                 <option value="">Select a movie</option>
                 {movies.map((movie) => (
@@ -276,122 +441,180 @@ const ManageShowsPage = () => {
               </select>
             </div>
             <div>
-              <label htmlFor="theater" className="block text-sm font-medium text-gray-700">
-                Theater:
-              </label>
-              <select
-                id="theater"
-                value={selectedTheater}
-                onChange={(e) => setSelectedTheater(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              >
-                <option value="">Select a theater</option>
-                {theaters.map((theater) => (
-                  <option key={theater.id} value={theater.id}>
-                    {theater["theatre-name"]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {selectedTheater && (
-              <div>
-                <label htmlFor="screen" className="block text-sm font-medium text-gray-700">
-                  Screen:
-                </label>
-                <select
-                  id="screen"
-                  value={selectedScreen}
-                  onChange={(e) => setSelectedScreen(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                >
-                  <option value="">Select a screen</option>
-                  {theaters
-                    .find((t) => t.id === selectedTheater)
-                    ?.["seat-matrix-layout"] &&
-                    Object.keys(
-                      theaters.find((t) => t.id === selectedTheater)["seat-matrix-layout"]
-                    ).map((screenName) => (
-                      <option key={screenName} value={screenName}>
-                        {screenName}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            )}
-            <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
-                Show Start Date:
-              </label>
-              <input
-                type="date"
-                id="startDate"
-                value={showStartDate}
-                onChange={(e) => setShowStartDate(e.target.value)}
-                min={getMinDate()}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              />
-            </div>
-            <div>
-              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
-                Show End Date:
-              </label>
-              <input
-                type="date"
-                id="endDate"
-                value={showEndDate}
-                onChange={(e) => setShowEndDate(e.target.value)}
-                min={showStartDate || getMinDate()}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Show Times:</label>
-              {showTimes.map((time, index) => (
-                <div key={index} className="flex items-center space-x-2 mt-2">
-                  <select
-                    value={time.hours}
-                    onChange={(e) => handleShowTimeChange(index, 'hours', e.target.value)}
-                    className="mt-1 block w-1/4 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  >
-                    {[...Array(24)].map((_, i) => (
-                      <option key={i} value={i.toString().padStart(2, '0')}>
-                        {i.toString().padStart(2, '0')}
-                      </option>
-                    ))}
-                  </select>
-                  <span>:</span>
-                  <select
-                    value={time.minutes}
-                    onChange={(e) => handleShowTimeChange(index, 'minutes', e.target.value)}
-                    className="mt-1 block w-1/4 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  >
-                    {[...Array(12)].map((_, i) => (
-                      <option key={i} value={(i * 5).toString().padStart(2, '0')}>
-                        {(i * 5).toString().padStart(2, '0')}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveShowTime(index)}
-                    className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
-                  >
-                    <FaTrash />
-                  </button>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Theaters and Screens:</label>
+              {theaters.map(theater => (
+                <div key={theater.id} className="mb-4">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      value={theater.id}
+                      checked={!!screenSelections[theater.id]}
+                      onChange={handleTheaterChange}
+                      className="form-checkbox h-5 w-5 text-indigo-600"
+                    />
+                    <span className="ml-2 text-gray-700">{theater['theatre-name']}</span>
+                  </label>
+                  {screenSelections[theater.id] && (
+                    <div className="ml-6 mt-2 space-y-2">
+                      {Object.keys(theater['seat-matrix-layout']).map(screenName => (
+                        <label key={screenName} className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={screenSelections[theater.id][screenName] || false}
+                            onChange={() => handleScreenChange(theater.id, screenName)}
+                            className="form-checkbox h-5 w-5 text-indigo-600"
+                          />
+                          <span className="ml-2 text-gray-700">{screenName}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={handleAddShowTime}
-                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
-              >
-                <FaPlus className="mr-2" /> Add Show Time
-              </button>
             </div>
+            {Object.entries(screenSelections).map(([theaterId, screens]) => (
+              <div key={theaterId} className="mt-6 p-6 border border-gray-200 rounded-md bg-gray-50">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  {theaters.find(t => t.id === theaterId)['theatre-name']}
+                </h3>
+                
+                {Object.entries(screens).map(([screenName, isSelected]) => isSelected && (
+                  <div key={screenName} className="mb-6 p-4 bg-white rounded-md shadow-sm">
+                    <h4 className="text-lg font-medium text-gray-800 mb-4">{screenName}</h4>
+                    <div className="flex flex-wrap gap-4 mb-4">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date:</label>
+                        <input
+                          type="date"
+                          value={showtimes[theaterId]?.[screenName]?.startDate || ''}
+                          onChange={(e) => handleDateChange(theaterId, screenName, 'startDate', e.target.value)}
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date:</label>
+                        <input
+                          type="date"
+                          value={showtimes[theaterId]?.[screenName]?.endDate || ''}
+                          onChange={(e) => handleDateChange(theaterId, screenName, 'endDate', e.target.value)}
+                          min={showtimes[theaterId]?.[screenName]?.startDate || ''}
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={separateTicketPrices[theaterId]?.[screenName] || false}
+                          onChange={() => handleSeparateTicketPricesChange(theaterId, screenName)}
+                          className="form-checkbox h-5 w-5 text-indigo-600"
+                        />
+                        <span className="ml-2 text-gray-700">Separate ticket prices for each day</span>
+                      </label>
+                    </div>
+                    {separateTicketPrices[theaterId]?.[screenName] ? (
+                      <div>
+                        {showtimes[theaterId]?.[screenName]?.dailyShowtimes?.map((day, dateIndex) => (
+                          <div key={day.date} className="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50">
+                            <h5 className="text-md font-medium text-gray-800 mb-2">{day.date}</h5>
+                            {day.showtimes?.map((showtime, showtimeIndex) => (
+                              <div key={showtimeIndex} className="mb-4 p-4 border border-gray-200 rounded-md bg-white">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <input
+                                    type="time"
+                                    value={showtime.time}
+                                    onChange={(e) => handleShowtimeChange(theaterId, screenName, dateIndex, showtimeIndex, 'time', e.target.value)}
+                                    className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeShowtime(theaterId, screenName, dateIndex, showtimeIndex)}
+                                    className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                                  >
+                                    <FaTrash />
+                                  </button>
+                                </div>
+                                <div className="mt-2">
+                                  <h6 className="text-sm font-medium text-gray-700 mb-1">Ticket Prices:</h6>
+                                  {Object.keys(showtime.ticketPrices).map(seatType => (
+                                    <div key={seatType} className="flex items-center space-x-2 mb-2">
+                                      <label className="w-24 text-sm font-medium text-gray-700">{seatType.charAt(0).toUpperCase() + seatType.slice(1)}:</label>
+                                      <input
+                                        type="number"
+                                        value={showtime.ticketPrices[seatType]}
+                                        onChange={(e) => handleTicketPriceChange(theaterId, screenName, dateIndex, showtimeIndex, seatType, e.target.value)}
+                                        className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                        placeholder="Price"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => addShowtime(theaterId, screenName, dateIndex)}
+                              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
+                            >
+                              <FaPlus className="mr-2" /> Add Showtime
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div>
+                        {showtimes[theaterId]?.[screenName]?.showtimes?.map((showtime, index) => (
+                          <div key={index} className="mb-4 p-4 border border-gray-200 rounded-md bg-white">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <input
+                                type="time"
+                                value={showtime.time}
+                                onChange={(e) => handleShowtimeChange(theaterId, screenName, null, index, 'time', e.target.value)}
+                                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeShowtime(theaterId, screenName, null, index)}
+                                className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                              >
+                                <FaTrash />
+                              </button>
+                            </div>
+                            <div className="mt-2">
+                              <h5 className="text-sm font-medium text-gray-700 mb-1">Ticket Prices:</h5>
+                              {Object.keys(showtime.ticketPrices).map(seatType => (
+                                <div key={seatType} className="flex items-center space-x-2 mb-2">
+                                  <label className="w-24 text-sm font-medium text-gray-700">{seatType.charAt(0).toUpperCase() + seatType.slice(1)}:</label>
+                                  <input
+                                    type="number"
+                                    value={showtime.ticketPrices[seatType]}
+                                    onChange={(e) => handleTicketPriceChange(theaterId, screenName, null, index, seatType, e.target.value)}
+                                    className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                    placeholder="Price"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => addShowtime(theaterId, screenName)}
+                          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
+                        >
+                          <FaPlus className="mr-2" /> Add Showtime
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))}
             <div>
               <button
                 type="submit"
-                className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-150 ease-in-out"
               >
                 Add Shows
               </button>
@@ -399,34 +622,80 @@ const ManageShowsPage = () => {
           </form>
         </div>
 
+        {/* Filters for existing shows */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Filter Existing Shows</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label htmlFor="theater-filter" className="block text-sm font-medium text-gray-700">
+                Theater
+              </label>
+              <select
+                id="theater-filter"
+                name="theater"
+                value={filters.theater}
+                onChange={handleFilterChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              >
+                <option value="">All Theaters</option>
+                {theaters.map((theater) => (
+                  <option key={theater.id} value={theater.id}>
+                    {theater["theatre-name"]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="movie-filter" className="block text-sm font-medium text-gray-700">
+                Movie
+              </label>
+              <select
+                id="movie-filter"
+                name="movie"
+                value={filters.movie}
+                onChange={handleFilterChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              >
+                <option value="">All Movies</option>
+                {movies.map((movie) => (
+                  <option key={movie.id} value={movie.id}>
+                    {movie.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="date-filter" className="block text-sm font-medium text-gray-700">
+                Date
+              </label>
+              <input
+                type="date"
+                id="date-filter"
+                name="date"
+                value={filters.date}
+                onChange={handleFilterChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              />
+            </div>
+            <div>
+              <label htmlFor="time-filter" className="block text-sm font-medium text-gray-700">
+                Time
+              </label>
+              <input
+                type="time"
+                id="time-filter"
+                name="time"
+                value={filters.time}
+                onChange={handleFilterChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Table for existing shows */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4">Existing Shows</h3>
-          <div className="mb-4 flex space-x-4">
-            <select
-              value={filterTheater}
-              onChange={(e) => setFilterTheater(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-            >
-              <option value="">All Theaters</option>
-              {theaters.map((theater) => (
-                <option key={theater.id} value={theater.id}>
-                  {theater["theatre-name"]}
-                </option>
-              ))}
-            </select>
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-            />
-            <input
-              type="time"
-              value={filterTime}
-              onChange={(e) => setFilterTime(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-            />
-          </div>
           <div className="overflow-x-auto">
             <table className="w-full table-auto">
               <thead className="bg-gray-200">
@@ -435,6 +704,7 @@ const ManageShowsPage = () => {
                   <th className="px-4 py-2 text-left">Theater</th>
                   <th className="px-4 py-2 text-left">Screen</th>
                   <th className="px-4 py-2 text-left">Date & Time</th>
+                  <th className="px-4 py-2 text-left">Ticket Prices</th>
                   <th className="px-4 py-2 text-left">Actions</th>
                 </tr>
               </thead>
@@ -446,11 +716,24 @@ const ManageShowsPage = () => {
                     <td className="px-4 py-2">{show.screenName}</td>
                     <td className="px-4 py-2">{show.datetime.toDate().toLocaleString()}</td>
                     <td className="px-4 py-2">
+                      {Object.entries(show.ticketPrices).map(([type, price]) => (
+                        <div key={type}>
+                          {type.charAt(0).toUpperCase() + type.slice(1)}: Rs.{parseFloat(price).toFixed(2)}
+                        </div>
+                      ))}
+                    </td>
+                    <td className="px-4 py-2">
                       <button
                         onClick={() => handleManageSeats(show)}
                         className="text-blue-600 hover:text-blue-800 mr-2"
                       >
                         <FaChair />
+                      </button>
+                      <button
+                        onClick={() => handleEditShow(show)}
+                        className="text-green-600 hover:text-green-800 mr-2"
+                      >
+                        <FaEdit />
                       </button>
                       <button
                         onClick={() => handleDeleteShow(show.id)}
@@ -467,12 +750,145 @@ const ManageShowsPage = () => {
         </div>
       </main>
       <Footer />
-      {isManageSeatsModalOpen && (
+
+      {/* Manage Seats Modal */}
+      {selectedShow && (
         <ManageSeatsModal
           show={selectedShow}
-          onClose={() => setIsManageSeatsModalOpen(false)}
+          onClose={() => setSelectedShow(null)}
+          onSave={handleUpdateSeatMatrix}
         />
       )}
+
+      {/* Edit Show Modal */}
+      {editingShow && (
+        <EditShowModal
+          show={editingShow}
+          onClose={() => setEditingShow(null)}
+          onSave={handleUpdateShow}
+        />
+      )}
+    </div>
+  );
+};
+
+// Manage Seats Modal Component
+const ManageSeatsModal = ({ show, onClose, onSave }) => {
+  const [seatMatrix, setSeatMatrix] = useState(show.seatMatrix);
+
+  const handleSeatToggle = (row, seatIndex) => {
+    setSeatMatrix((prevMatrix) => {
+      const newMatrix = JSON.parse(JSON.stringify(prevMatrix)); // Deep copy
+      newMatrix.matrix[row].seats[seatIndex] = !newMatrix.matrix[row].seats[seatIndex];
+      return newMatrix;
+    });
+  };
+
+  const handleSave = () => {
+    onSave(show.id, seatMatrix);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Manage Seats</h3>
+        <div className="overflow-x-auto">
+          <div className="inline-block min-w-full">
+            {Object.entries(seatMatrix.matrix).map(([row, { seats, type }]) => (
+              <div key={row} className="flex mb-2">
+                <span className="w-8 text-center">{row}</span>
+                {seats.map((isAvailable, index) => (
+                  <button
+                    key={index}
+                    className={`w-8 h-8 m-1 rounded-md flex items-center justify-center ${
+                      isAvailable ? "bg-green-500" : "bg-red-500"
+                    }`}
+                    onClick={() => handleSeatToggle(row, index)}
+                  >
+                    <FaChair className="text-white" />
+                  </button>
+                ))}
+                <span className="ml-2">{type}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Edit Show Modal Component
+const EditShowModal = ({ show, onClose, onSave }) => {
+  const [editedShow, setEditedShow] = useState(show);
+
+  const handleTicketPriceChange = (seatType, price) => {
+    setEditedShow((prev) => ({
+      ...prev,
+      ticketPrices: {
+        ...prev.ticketPrices,
+        [seatType]: price,
+      },
+    }));
+  };
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    onSave(editedShow);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Show</h3>
+        <form onSubmit={handleSave}>
+          <div className="mb-4">
+            <h4 className="text-md font-medium text-gray-800 mb-2">Ticket Prices</h4>
+            {Object.entries(editedShow.ticketPrices).map(([type, price]) => (
+              <div key={type} className="flex items-center space-x-2 mb-2">
+                <label className="w-24 text-sm font-medium text-gray-700">{type.charAt(0).toUpperCase() + type.slice(1)}:</label>
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => handleTicketPriceChange(type, e.target.value)}
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  placeholder="Price"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
