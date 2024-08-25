@@ -129,29 +129,36 @@ const ManageShowsPage = () => {
       },
     }));
 
-    if (!separateTicketPrices[theaterId]?.[screenName]) {
-      const startDate = new Date(showtimes[theaterId]?.[screenName]?.startDate);
-      const endDate = new Date(showtimes[theaterId]?.[screenName]?.endDate);
-      const dailyShowtimes = [];
-
-      for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-        dailyShowtimes.push({
-          date: date.toISOString().split('T')[0],
-          showtimes: [],
-        });
+    setShowtimes((prev) => {
+      const updatedShowtimes = { ...prev };
+      if (!updatedShowtimes[theaterId]) {
+        updatedShowtimes[theaterId] = {};
+      }
+      if (!updatedShowtimes[theaterId][screenName]) {
+        updatedShowtimes[theaterId][screenName] = {};
       }
 
-      setShowtimes((prev) => ({
-        ...prev,
-        [theaterId]: {
-          ...prev[theaterId],
-          [screenName]: {
-            ...prev[theaterId][screenName],
-            dailyShowtimes,
-          },
-        },
-      }));
-    }
+      if (!prev[theaterId]?.[screenName]?.separateTicketPrices) {
+        // Switching to separate ticket prices
+        const startDate = new Date(updatedShowtimes[theaterId][screenName].startDate || new Date());
+        const endDate = new Date(updatedShowtimes[theaterId][screenName].endDate || new Date());
+        const dailyShowtimes = [];
+
+        for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+          dailyShowtimes.push({
+            date: date.toISOString().split('T')[0],
+            showtimes: [],
+          });
+        }
+
+        updatedShowtimes[theaterId][screenName].dailyShowtimes = dailyShowtimes;
+      } else {
+        // Switching to common ticket prices
+        updatedShowtimes[theaterId][screenName].showtimes = [];
+      }
+
+      return updatedShowtimes;
+    });
   };
 
   const addShowtime = (theaterId, screenName, dateIndex = null) => {
@@ -168,19 +175,26 @@ const ManageShowsPage = () => {
 
     setShowtimes(prev => {
       const updatedShowtimes = {...prev};
+      if (!updatedShowtimes[theaterId]) {
+        updatedShowtimes[theaterId] = {};
+      }
+      if (!updatedShowtimes[theaterId][screenName]) {
+        updatedShowtimes[theaterId][screenName] = {};
+      }
+
       if (separateTicketPrices[theaterId]?.[screenName]) {
         // If separate ticket prices are enabled
-        if (!updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes) {
-          updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes = [];
+        if (!updatedShowtimes[theaterId][screenName].dailyShowtimes) {
+          updatedShowtimes[theaterId][screenName].dailyShowtimes = [];
+        }
+        if (!updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex]) {
+          updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex] = { showtimes: [] };
         }
         updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes.push(newShowtime);
       } else {
         // If common ticket prices are used
-        if (!updatedShowtimes[theaterId]) {
-          updatedShowtimes[theaterId] = {};
-        }
-        if (!updatedShowtimes[theaterId][screenName]) {
-          updatedShowtimes[theaterId][screenName] = { showtimes: [] };
+        if (!updatedShowtimes[theaterId][screenName].showtimes) {
+          updatedShowtimes[theaterId][screenName].showtimes = [];
         }
         updatedShowtimes[theaterId][screenName].showtimes.push(newShowtime);
       }
