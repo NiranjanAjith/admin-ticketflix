@@ -21,7 +21,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const collections = ['userTickets', 'Users', 'theatres', 'shows', 'movies', 'executives'];
+        const collections = ['tickets', 'Users', 'theatres', 'shows', 'movies', 'executives'];
         const [userTicketsData, usersData, theatresData, showsData, moviesData, executivesData] = await Promise.all(
           collections.map(async (collectionName) => {
             const snapshot = await getDocs(collection(firestore, collectionName));
