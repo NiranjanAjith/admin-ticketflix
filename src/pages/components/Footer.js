@@ -5,8 +5,6 @@ const Footer = () => (
     <div className="container mx-auto px-4">
       <div className="text-center">
         <p>&copy; 2024 TicketFlix. All rights reserved.</p>
-        <a href='/terms-and-conditions'>Terms and Conditions</a><br />
-        <a href='/privacy-policy'>Privacy Policy</a>
       </div>
     </div>
   </footer>
