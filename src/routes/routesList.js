@@ -20,6 +20,7 @@ import LandingPage from "../pages/LandingPage";
 import AddMoviePage from "../pages/admin/AddMoviePage";
 import ViewCoupon from "../pages/qr_verification/ViewCoupon";
 import ViewTicket from "../pages/qr_verification/ViewTicket";
+import ManageShowsPage from "../pages/admin/ManageShowsPage";
 
 import PrebookingForm from "../pages/prebook/PrebookForm";
 import PaymentGateway from "../pages/prebook/Gateway";
@@ -80,6 +81,14 @@ const AdminRoutes = () => {
       element={
         <AdminPrivateRoute>
           <ManageMoviesPage />
+        </AdminPrivateRoute>
+      }
+    />,
+    <Route
+      path={routes.MANAGE_SHOWS}
+      element={
+        <AdminPrivateRoute>
+          <ManageShowsPage />
         </AdminPrivateRoute>
       }
     />,

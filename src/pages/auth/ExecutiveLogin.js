@@ -45,16 +45,16 @@ const ExecutiveLogin = () => {
     }
   };
 
-  const handleToggle = () => {
-    navigate(routes.ADMIN_LOGIN);
-  };
+  // const handleToggle = () => { // FIXME: AVOID SINGLE LINE FUNCTIONS 
+  //   navigate(routes.ADMIN_LOGIN);
+  // };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 to-black text-white">
       <nav className="bg-black bg-opacity-80 shadow-md">
         <div className="container mx-auto px-4 py-3 flex items-center">
-          <Film className="text-red-600 mr-2" size={32} />
-          <a href={routes.HOME} className="text-3xl font-bold text-red-600">
+          <Film className="text-yellow-600 mr-2" size={32} />
+          <a href={routes.HOME} className="text-3xl font-bold text-yellow-600">
             TicketFlix
           </a>
         </div>
@@ -62,31 +62,31 @@ const ExecutiveLogin = () => {
 
       <div className="flex-grow container mx-auto px-4 py-12 flex items-center justify-center">
         <div className="w-full max-w-md relative">
-          <div className="absolute inset-0 bg-red-600 transform -rotate-6 rounded-3xl shadow-2xl"></div>
+          <div className="absolute inset-0 bg-yellow-600 transform -rotate-6 rounded-3xl shadow-2xl"></div>
           <div className="relative bg-gray-900 p-8 rounded-3xl shadow-xl backdrop-blur-sm border border-gray-800">
-            <h2 className="text-4xl font-bold mb-6 text-center text-red-500">
+            <h2 className="text-4xl font-bold mb-6 text-center text-yellow-500">
               Executive Login
             </h2>
             <p className="text-center mb-8 text-gray-300">
               Enter the backstage of cinema magic
             </p>
             
-            {/* Toggle Switch */}
-            <div className="flex items-center justify-center mb-6">
+            {/* Toggle Switch ;; NO NEED FOR THIS */}
+            {/* <div className="flex items-center justify-center mb-6">
               <span className="mr-3 text-gray-400">Admin</span>
               <div
                 className="w-14 h-7 flex items-center bg-gray-300 rounded-full p-1 cursor-pointer"
                 onClick={handleToggle}
               >
                 <div
-                  className="bg-red-500 w-5 h-5 rounded-full shadow-md transform duration-300 ease-in-out translate-x-7"
+                  className="bg-yellow-500 w-5 h-5 rounded-full shadow-md transform duration-300 ease-in-out translate-x-7"
                 ></div>
               </div>
-              <span className="ml-3 text-red-500">Executive</span>
-            </div>
+              <span className="ml-3 text-yellow-500">Executive</span>
+            </div> */}
 
             {error && (
-              <div className="bg-red-500 text-white p-3 rounded mb-4 text-sm">
+              <div className="bg-yellow-500 text-white p-3 rounded mb-4 text-sm">
                 {error}
               </div>
             )}
@@ -106,7 +106,7 @@ const ExecutiveLogin = () => {
                   <input
                     type="email"
                     id="email"
-                    className="w-full pl-10 pr-3 py-3 bg-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-300 text-white"
+                    className="w-full pl-10 pr-3 py-3 bg-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300 text-white"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -130,7 +130,7 @@ const ExecutiveLogin = () => {
                   <input
                     type="password"
                     id="password"
-                    className="w-full pl-10 pr-3 py-3 bg-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-300 text-white"
+                    className="w-full pl-10 pr-3 py-3 bg-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300 text-white"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -141,7 +141,7 @@ const ExecutiveLogin = () => {
               </div>
               <button
                 type="submit"
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:shadow-outline transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:shadow-outline transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
               >
                 Login to Dashboard
                 <ChevronRight className="ml-2" size={18} />
@@ -150,7 +150,7 @@ const ExecutiveLogin = () => {
             <div className="mt-6 text-center">
               <a
                 href={routes.EXEC_SIGNUP}
-                className="text-sm text-red-400 hover:text-red-300 transition-colors duration-300"
+                className="text-sm text-yellow-500 hover:text-yellow-600 hover:no-underline transition-colors duration-300"
               >
                 Don't have an executive account? Signup here.
               </a>
