@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useContext } from "react";
-import { firestore } from "../../firebase";
+import { firestore, storage } from "../../firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { ref, getBytes, listAll } from "firebase/storage";
 import { AuthContext } from "../../context/AuthContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { jsPDF } from "jspdf";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
 const ExecutiveDashboard = () => {
-  const [coupons, setCoupons] = useState([]);
+  const [groupedCoupons, setGroupedCoupons] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [couponAnalysis, setCouponAnalysis] = useState({
@@ -19,7 +21,7 @@ const ExecutiveDashboard = () => {
     sold_coupons: 0,
     unsold_coupons: 0
   });
-  const [filterDate, setFilterDate] = useState(null);
+  const [filterDate, setFilterDate] = useState(new Date());
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
@@ -52,9 +54,6 @@ const ExecutiveDashboard = () => {
           unsold_coupons: executiveData.unsold_coupons || 0
         });
 
-        const couponPDFs = executiveData.couponPDFs || [];
-        console.log("Coupon PDFs:", couponPDFs);
-
         if (!executiveData.executiveCode) {
           console.log("No executiveCode found for user:", user.uid);
           setError("No executive code found");
@@ -73,31 +72,37 @@ const ExecutiveDashboard = () => {
           return {
             id: doc.id,
             ...data,
-            generated_date: data.generated_date ? data.generated_date.toDate() : null
+            generated_date: data.generated_date ? data.generated_date.toDate() : null,
+            qrCodeUrl: data.imageUrl ?? ""
           };
         });
 
         console.log("Coupon details:", couponDetails);
 
-        const combinedCoupons = couponPDFs.map(pdf => {
-          const fileNameParts = pdf.fileName.split('_');
-          const executiveCode = fileNameParts[1];
-          const timestamp = parseInt(fileNameParts[2].split('.')[0]);
-          const generatedDate = new Date(timestamp);
+        // Group coupons by generated date
+        const grouped = couponDetails.reduce((acc, coupon) => {
+          const date = coupon.generated_date.toDateString();
+          if (!acc[date]) {
+            acc[date] = [];
+          }
+          acc[date].push(coupon);
+          return acc;
+        }, {});
 
-          const details = couponDetails.find(detail => detail.executiveCode === executiveCode && detail.generated_date?.getTime() === generatedDate.getTime());
-          
-          return {
-            ...pdf,
-            ...details,
-            executiveCode,
-            generatedDate: details?.generated_date || generatedDate
-          };
-        });
+        setGroupedCoupons(grouped);
 
-        console.log("Combined coupons:", combinedCoupons);
+        // List contents of 'coupons' folder in storage
+        const listRef = ref(storage, 'coupons');
+        listAll(listRef)
+          .then((res) => {
+            console.log("Files in 'coupons' folder:");
+            res.items.forEach((itemRef) => {
+              console.log("Found file:", itemRef.fullPath);
+            });
+          }).catch((error) => {
+            console.log("Error listing files:", error);
+          });
 
-        setCoupons(combinedCoupons);
       } catch (error) {
         console.error("Error fetching data:", error);
         setError("Error fetching data: " + error.message);
@@ -109,46 +114,131 @@ const ExecutiveDashboard = () => {
     fetchData();
   }, [user]);
 
-  const currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0);
+  const fetchImage = async (url) => {
+    try {
+      console.log("Attempting to fetch image from URL:", url);
+      
+      // Extract the path from the URL
+      const path = url.split('movie-campaign.appspot.com/o/')[1].split('?')[0];
+      const decodedPath = decodeURIComponent(path);
+      console.log("Decoded path:", decodedPath);
+      
+      // Create a reference to the file
+      const imageRef = ref(storage, decodedPath);
+      console.log("Image reference created:", imageRef);
+      console.log("Full path:", imageRef.fullPath);
+      
+      // Get the bytes directly from Firebase Storage
+      const bytes = await getBytes(imageRef);
+      console.log("Image bytes obtained");
+      
+      // Convert bytes to base64
+      const base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
+      return `data:image/png;base64,${base64}`;
+    } catch (error) {
+      console.error(`Error fetching image from ${url}:`, error);
+      if (error.code === 'storage/object-not-found') {
+        console.log("The specified object does not exist in Firebase Storage.");
+      }
+      return null;
+    }
+  };
 
-  const currentCoupons = coupons.filter(coupon => coupon.generatedDate >= currentDate);
-  const pastCoupons = coupons.filter(coupon => coupon.generatedDate < currentDate);
+  const generatePDF = async (date, couponsForDate) => {
+    if (couponsForDate.length === 0) {
+      alert("No coupons found for the selected date.");
+      return;
+    }
+    const pdf = new jsPDF();
+    const imagesPerPage = 4;
+    const imageWidth = 90;
+    const imageHeight = 90;
+    const margin = 15;
+    for (let i = 0; i < couponsForDate.length; i++) {
+      if (i > 0 && i % imagesPerPage === 0) {
+        pdf.addPage();
+      }
+      const coupon = couponsForDate[i];
+      try {
+        console.log("Full coupon object:", coupon);
+        console.log(`Processing coupon: ${coupon.coupon_code}`);
+        console.log(`QR Code URL: ${coupon.qrCodeUrl}`);
+        if (!coupon.qrCodeUrl) {
+          throw new Error("QR Code URL is missing");
+        }
+        const imgData = await fetchImage(coupon.qrCodeUrl);
+       
+        if (imgData) {
+          const xPosition = margin + (i % 2) * (imageWidth + margin);
+          const yPosition = margin + Math.floor((i % imagesPerPage) / 2) * (imageHeight + margin);
+          pdf.addImage(imgData, 'PNG', xPosition, yPosition, imageWidth, imageHeight);
+          console.log(`Image added to PDF for coupon: ${coupon.coupon_code}`);
+        } else {
+          throw new Error("Failed to fetch image data");
+        }
+      } catch (error) {
+        console.error(`Error processing coupon ${coupon.coupon_code}:`, error);
+        const xPosition = margin + (i % 2) * (imageWidth + margin);
+        const yPosition = margin + Math.floor((i % imagesPerPage) / 2) * (imageHeight + margin);
+        pdf.setFontSize(10);
+        pdf.text(`Error loading image for: ${coupon.coupon_code}`, xPosition, yPosition + imageHeight / 2);
+      }
+    }
 
-  const filteredPastCoupons = filterDate
-    ? pastCoupons.filter(coupon => coupon.generatedDate.toDateString() === filterDate.toDateString())
-    : pastCoupons;
+    // Generate PDF blob
+    const pdfBlob = pdf.output('blob');
+    
+    // Create a download link
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(pdfBlob);
+    link.download = `coupons_${date.replace(/\s/g, '_')}.pdf`;
+    link.click();
 
-  const renderCouponList = (coupons, title) => (
-    <section className="mb-8">
-      <h3 className="text-xl font-semibold text-gray-800 mb-3">{title}</h3>
-      {coupons.length > 0 ? (
-        <ul className="space-y-2">
-          {coupons.map((coupon) => (
-            <li key={coupon.fileName} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-              <span className="text-gray-800">{coupon.fileName}</span>
-              <div>
-                <span className={`mr-4 ${coupon.is_sold ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {coupon.is_sold ? 'Sold' : 'Unsold'}
-                </span>
-                <span className="text-gray-600 mr-4">{coupon.generatedDate.toLocaleDateString()}</span>
-                <a
-                  href={coupon.downloadURL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 font-medium"
+    // Clean up
+    URL.revokeObjectURL(link.href);
+
+    console.log(`PDF generated for date: ${date}`);
+  };
+
+  const renderCouponList = () => {
+    const filteredGroupedCoupons = Object.entries(groupedCoupons)
+      .filter(([date]) => new Date(date) >= filterDate)
+      .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA));
+
+    return (
+      <section className="mb-8">
+        {filteredGroupedCoupons.length > 0 ? (
+          filteredGroupedCoupons.map(([date, couponsForDate]) => (
+            <div key={date} className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-lg font-semibold">{date}</h4>
+                <button
+                  onClick={() => generatePDF(date, couponsForDate)}
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm"
                 >
                   Download PDF
-                </a>
+                </button>
               </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-600">No {title.toLowerCase()} available.</p>
-      )}
-    </section>
-  );
+              <ul className="space-y-2">
+                {couponsForDate.map((coupon) => (
+                  <li key={coupon.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                    <span className="text-gray-800">{coupon.coupon_code}</span>
+                    <div>
+                      <span className={`mr-4 ${coupon.is_sold ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {coupon.is_sold ? 'Sold' : 'Unsold'}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-600">No coupons available for the selected date range.</p>
+        )}
+      </section>
+    );
+  };
 
   const pieChartData = [
     { name: 'Sold Coupons', value: couponAnalysis.sold_coupons },
@@ -218,19 +308,17 @@ const ExecutiveDashboard = () => {
             </div>
           </section>
 
-          {renderCouponList(currentCoupons, "Currently Generated Coupons")}
-
           <section className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">Past Generated Coupons</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">Generated Coupons</h3>
             <div className="mb-4">
               <DatePicker
                 selected={filterDate}
                 onChange={date => setFilterDate(date)}
                 className="form-input rounded-md shadow-sm"
-                placeholderText="Filter by date"
+                placeholderText="Filter from date"
               />
             </div>
-            {renderCouponList(filteredPastCoupons, "Past Coupons")}
+            {renderCouponList()}
           </section>
         </div>
       </main>

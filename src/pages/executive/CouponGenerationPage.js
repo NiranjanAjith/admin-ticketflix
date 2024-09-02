@@ -20,10 +20,8 @@ import Footer from "./components/Footer";
 
 function CouponGeneration() {
   const [numCoupons, setNumCoupons] = useState("");
-  const [pdfUrl, setPdfUrl] = useState(null);
   const [couponAmount, setCouponAmount] = useState("");
   const [executiveCode, setExecutiveCode] = useState("");
-  // const [coupons, setCoupons] = useState([]); //FIXME: Not used anywhere, check if needed
   const [isGenerating, setIsGenerating] = useState(false);
   const [allowExecutiveAccess, setAllowExecutiveAccess] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,31 +54,31 @@ function CouponGeneration() {
     fetchExecutiveData();
   }, [user]);
 
-  const saveQRCodeToStorage = async (qrDataUrl, ticketId) => {
+  const saveImageToStorage = async (imageDataUrl, ticketId) => {
     try {
-      const storageRef = ref(storage, `qrcodes/${ticketId}.png`);
-      const response = await fetch(qrDataUrl);
+      const storageRef = ref(storage, `coupons/${ticketId}.png`);
+      const response = await fetch(imageDataUrl);
       const blob = await response.blob();
       await uploadBytes(storageRef, blob);
       return await getDownloadURL(storageRef);
     } catch (error) {
-      console.error("Error saving QR code to storage:", error);
-      throw new Error("Failed to save QR code. Please try again.");
+      console.error("Error saving image to storage:", error);
+      throw new Error("Failed to save image. Please try again.");
     }
   };
 
-  const updateFirestoreWithQRCodeUrl = async (ticketId, qrCodeUrl) => {
+  const updateFirestoreWithImageUrl = async (ticketId, imageUrl) => {
     try {
       const couponDoc = doc(firestore, "coupons", ticketId);
-      await updateDoc(couponDoc, { qrCodeUrl });
+      await updateDoc(couponDoc, { imageUrl });
     } catch (error) {
-      console.error("Error updating Firestore with QR code URL:", error);
-      throw new Error("Failed to update coupon with QR code URL. Please try again.");
+      console.error("Error updating Firestore with image URL:", error);
+      throw new Error("Failed to update coupon with image URL. Please try again.");
     }
   };
 
   const drawTicket = (
-    pdf,
+    canvas,
     ticket,
     qrDataUrl,
     startX,
@@ -88,107 +86,83 @@ function CouponGeneration() {
     ticketWidth,
     ticketHeight
   ) => {
-    // Draw background (gradient approximation)
-    const gradientColors = [
-      { r: 20, g: 184, b: 166 }, // teal-500
-      { r: 8, g: 145, b: 178 }, // cyan-600
-    ];
-    for (let i = 0; i < ticketWidth; i++) {
-      const t = i / ticketWidth;
-      const r = Math.round(
-        gradientColors[0].r * (1 - t) + gradientColors[1].r * t
-      );
-      const g = Math.round(
-        gradientColors[0].g * (1 - t) + gradientColors[1].g * t
-      );
-      const b = Math.round(
-        gradientColors[0].b * (1 - t) + gradientColors[1].b * t
-      );
-      pdf.setDrawColor(r, g, b);
-      pdf.setFillColor(r, g, b);
-      pdf.rect(startX + i, startY, 1, ticketHeight, "F");
-    }
+    return new Promise((resolve) => {
+      const ctx = canvas.getContext('2d');
 
-    // Add rounded corners (approximation)
-    pdf.setDrawColor(255, 255, 255);
-    pdf.setFillColor(255, 255, 255);
-    const cornerRadius = 5;
-    pdf.circle(startX, startY, cornerRadius, "F");
-    pdf.circle(startX + ticketWidth, startY, cornerRadius, "F");
-    pdf.circle(startX, startY + ticketHeight, cornerRadius, "F");
-    pdf.circle(startX + ticketWidth, startY + ticketHeight, cornerRadius, "F");
+      // Clear the canvas
+      ctx.clearRect(startX, startY, ticketWidth, ticketHeight);
 
-    // Column 1
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(24);
-    pdf.setTextColor(255, 255, 255);
-    pdf.text("TICKET FLIX", startX + 10, startY + 40);
+      // Draw background (gradient)
+      const gradient = ctx.createLinearGradient(startX, startY, startX + ticketWidth, startY);
+      gradient.addColorStop(0, '#14b8a6'); // teal-500
+      gradient.addColorStop(1, '#0891b2'); // cyan-600
+      ctx.fillStyle = gradient;
+      ctx.fillRect(startX, startY, ticketWidth, ticketHeight);
 
-    pdf.setFillColor(79, 70, 229); // indigo-600
-    pdf.roundedRect(startX + 10, startY + 50, ticketWidth * 0.3, 15, 6, 6, "F");
-    pdf.setFontSize(12);
-    pdf.text(`Amount: Rs. ${ticket["amount-paid"]}`, startX + 15, startY + 59);
+      // Add rounded corners
+      const cornerRadius = 10;
+      ctx.beginPath();
+      ctx.moveTo(startX + cornerRadius, startY);
+      ctx.lineTo(startX + ticketWidth - cornerRadius, startY);
+      ctx.quadraticCurveTo(startX + ticketWidth, startY, startX + ticketWidth, startY + cornerRadius);
+      ctx.lineTo(startX + ticketWidth, startY + ticketHeight - cornerRadius);
+      ctx.quadraticCurveTo(startX + ticketWidth, startY + ticketHeight, startX + ticketWidth - cornerRadius, startY + ticketHeight);
+      ctx.lineTo(startX + cornerRadius, startY + ticketHeight);
+      ctx.quadraticCurveTo(startX, startY + ticketHeight, startX, startY + ticketHeight - cornerRadius);
+      ctx.lineTo(startX, startY + cornerRadius);
+      ctx.quadraticCurveTo(startX, startY, startX + cornerRadius, startY);
+      ctx.closePath();
+      ctx.clip();
 
-    // Column 2
-    const column2X = startX + ticketWidth * 0.38;
-    pdf.setFontSize(10);
-    pdf.text("Coupon Code", column2X, startY + 18.5);
-    pdf.setFillColor(255, 255, 255);
-    pdf.setTextColor(0, 128, 128);
-    pdf.roundedRect(
-      column2X,
-      startY + 21.3,
-      ticketWidth * 0.3 - 20,
-      15,
-      3,
-      3,
-      "F"
-    );
-    pdf.setFontSize(12);
-    pdf.text(ticket.coupon_code, column2X + 4, startY + 30.4);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(startX, startY, ticketWidth, ticketHeight);
 
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(10);
-    pdf.text("Executive ID", column2X, startY + 49.5);
-    pdf.setFillColor(255, 255, 255);
-    pdf.setTextColor(0, 128, 128);
-    pdf.roundedRect(
-      column2X,
-      startY + 52,
-      ticketWidth * 0.3 - 20,
-      15,
-      3,
-      3,
-      "F"
-    );
-    pdf.setFontSize(12);
-    pdf.text(ticket.executiveCode, column2X + 4, startY + 61.25);
+      // Column 1
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 36px Arial';
+      ctx.fillText("TICKET FLIX", startX + 20, startY + 50);
 
-    // Column 3 (QR Code)
-    const qrSize = ticketHeight * 0.7;
-    pdf.addImage(
-      qrDataUrl,
-      "PNG",
-      startX + ticketWidth - qrSize - 10,
-      startY + (ticketHeight - qrSize) / 2,
-      qrSize,
-      qrSize
-    );
+      ctx.fillStyle = '#4f46e5'; // indigo-600
+      ctx.beginPath();
+      ctx.roundRect(startX + 20, startY + 70, ticketWidth * 0.4, 40, 6);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText(`Amount: Rs. ${ticket["amount-paid"]}`, startX + 30, startY + 98);
 
-    // Add shadow effect (approximation)
-    pdf.setDrawColor(0, 0, 0);
-    pdf.setFillColor(0, 0, 0);
-    pdf.setGState(new pdf.GState({ opacity: 0.1 }));
-    pdf.roundedRect(
-      startX + 2,
-      startY + 2,
-      ticketWidth,
-      ticketHeight,
-      5,
-      5,
-      "F"
-    );
-    pdf.setGState(new pdf.GState({ opacity: 1 }));
+      // Column 2
+      const column2X = startX + ticketWidth * 0.1;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '20px Arial';
+      ctx.fillText("Coupon Code", column2X, startY + 150);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(column2X, startY + 160, ticketWidth * 0.5, 40, 6);
+      ctx.fill();
+      ctx.fillStyle = '#008080';
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText(ticket.coupon_code, column2X + 10, startY + 188);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '20px Arial';
+      ctx.fillText("Executive ID", column2X, startY + 230);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(column2X, startY + 240, ticketWidth * 0.5, 40, 6);
+      ctx.fill();
+      ctx.fillStyle = '#008080';
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText(ticket.executiveCode, column2X + 10, startY + 268);
+
+      // QR Code
+      const qrSize = ticketHeight * 0.5;
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, startX + ticketWidth - qrSize - 20, startY + (ticketHeight - qrSize) / 2, qrSize, qrSize);
+        resolve();
+      };
+      img.src = qrDataUrl;
+    });
   };
 
   const generatePDF = (ticketsWithQR) => {
@@ -217,39 +191,10 @@ function CouponGeneration() {
       const startX = margin;
       const startY = margin + ticketIndex * (ticketHeight + margin);
 
-      drawTicket(
-        pdf,
-        item.ticket,
-        item.qrDataUrl,
-        startX,
-        startY,
-        ticketWidth,
-        ticketHeight
-      );
+      pdf.addImage(item.imageDataUrl, 'PNG', startX, startY, ticketWidth, ticketHeight);
     });
 
     return pdf;
-  };
-
-  const savePDFToStorage = async (pdf, executiveCode) => {
-    const pdfBlob = pdf.output("blob");
-    const fileName = `coupons_${executiveCode}_${Date.now()}.pdf`;
-    const storageRef = ref(storage, `coupon_pdfs/${fileName}`);
-    await uploadBytes(storageRef, pdfBlob);
-    const downloadURL = await getDownloadURL(storageRef);
-    return { fileName, downloadURL };
-  };
-
-  const updateExecutiveCouponPDF = async (executiveCode, fileName, downloadURL) => {
-    const executivesRef = collection(firestore, "executives");
-    const q = query(executivesRef, where("executiveCode", "==", executiveCode));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      const executiveDoc = querySnapshot.docs[0];
-      await updateDoc(doc(firestore, "executives", executiveDoc.id), {
-        couponPDFs: [...(executiveDoc.data().couponPDFs || []), { fileName, downloadURL }]
-      });
-    }
   };
 
   const createCouponsTransaction = async (amount, count) => {
@@ -269,9 +214,9 @@ function CouponGeneration() {
             createdAt: new Date(),
             generated_date: serverTimestamp(),
             is_sold: false,
-            is_redeemed: false, // New field
+            is_redeemed: false,
             sale_date: null,
-            validity: new Date(Date.now() + 2592000000), // 30 days from now (30 * 24 * 60 * 60 * 1000 = 2592000000)
+            validity: new Date(Date.now() + 2592000000), // 30 days from now
           };
           const newCouponRef = doc(couponsCollection);
           transaction.set(newCouponRef, couponData);
@@ -299,7 +244,6 @@ function CouponGeneration() {
     }
   };
 
-
   const processCoupons = async () => {
     setIsGenerating(true);
     setProgress(0);
@@ -313,7 +257,6 @@ function CouponGeneration() {
       }
 
       const newTickets = await createCouponsTransaction(couponAmount, newTicketsNeeded);
-      // setCoupons((prevTickets) => [...prevTickets, ...newTickets]);
       setProgress(20);
 
       for (let i = 0; i < newTickets.length; i++) {
@@ -322,19 +265,27 @@ function CouponGeneration() {
         const urlCode = encodeURIComponent(hashedCode + ticket.id);
         const ticketURL = `https://www.ticketflix.in/view-coupon/${urlCode}`;
         const qrDataUrl = await QRCode.toDataURL(ticketURL);
-        const storageUrl = await saveQRCodeToStorage(qrDataUrl, ticket.id);
-        await updateFirestoreWithQRCodeUrl(ticket.id, storageUrl);
-        processedTickets.push({ ticket, qrDataUrl });
+        
+        // Create canvas and draw ticket
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 320;
+        await drawTicket(canvas, ticket, qrDataUrl, 0, 0, 800, 320);
+        
+        const imageDataUrl = canvas.toDataURL('image/png');
+        const storageUrl = await saveImageToStorage(imageDataUrl, ticket.id);
+        await updateFirestoreWithImageUrl(ticket.id, storageUrl);
+        processedTickets.push({ ticket, imageDataUrl });
         setProgress(20 + Math.floor((i + 1) / newTickets.length * 60));
       }
 
       const pdf = generatePDF(processedTickets, totalAmount);
       setProgress(90);
-      const { fileName, downloadURL } = await savePDFToStorage(pdf, executiveCode);
-      await updateExecutiveCouponPDF(executiveCode, fileName, downloadURL);
-
-      setPdfUrl(downloadURL);
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      
       setProgress(100);
+      return pdfUrl;
     } catch (error) {
       console.error("Error processing coupons:", error);
       throw new Error(`An error occurred while processing coupons: ${error.message}`);
@@ -350,7 +301,14 @@ function CouponGeneration() {
       return;
     }
     try {
-      await processCoupons();
+      const pdfUrl = await processCoupons();
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = 'generated_coupons.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(pdfUrl);
       alert("Coupons generated successfully!");
     } catch (error) {
       alert(error.message);
@@ -461,15 +419,6 @@ function CouponGeneration() {
               <p className="font-bold">Coupon Generation not allowed</p>
               <p>You are not currently authorized to generate coupons. Please contact your administrator for assistance.</p>
             </div>
-          )}
-          {pdfUrl && (
-            <a
-              href={pdfUrl}
-              download="qr_codes.pdf"
-              className="mt-4 block text-center py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-200"
-            >
-              Download generated coupons
-            </a>
           )}
         </div>
       </main>

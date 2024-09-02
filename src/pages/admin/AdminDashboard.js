@@ -61,9 +61,9 @@ const AdminDashboard = () => {
   );
 
   const salesAnalytics = [
-    { name: 'Elite Class', value: filteredUserTickets.filter(ticket => ticket.class === 'elite').length },
-    { name: 'Standard Class', value: filteredUserTickets.filter(ticket => ticket.class === 'standard').length },
-    { name: 'Premium Class', value: filteredUserTickets.filter(ticket => ticket.class === 'premium').length },
+    { name: 'Diamond Class', value: filteredUserTickets.filter(ticket => ticket.class === 'diamond').length },
+    { name: 'Gold Class', value: filteredUserTickets.filter(ticket => ticket.class === 'gold').length },
+    { name: 'Regular Class', value: filteredUserTickets.filter(ticket => ticket.class === 'regular').length },
   ];
 
   const salesByMovie = movies.map(movie => ({
@@ -98,7 +98,7 @@ const AdminDashboard = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Sales Analytics</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {[
-              { id: 'cityFilter', label: 'City', options: cityOptions },
+              { id: 'cityFilter', label: 'Cities', options: cityOptions },
               { id: 'movieFilter', label: 'Movie', options: movieOptions },
               { id: 'theatreFilter', label: 'Theatre', options: theatreOptions },
             ].map(filter => (
@@ -111,7 +111,7 @@ const AdminDashboard = () => {
                   className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   {filter.options.map(option => (
-                    <option key={option} value={option}>{option === 'all' ? `All ${filter.label}s` : option}</option>
+                    <option key={option} value={option}>{option === 'all' ? `All ${filter.label}` : option}</option>
                   ))}
                 </select>
               </div>
@@ -129,7 +129,7 @@ const AdminDashboard = () => {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
-                    label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                    label={({ name, value, percent }) => `(${(percent * 100).toFixed(0)}%)`}
                   >
                     {salesAnalytics.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
