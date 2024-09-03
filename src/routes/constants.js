@@ -8,6 +8,7 @@ const routes = {
   FAILURE:"/failure",
 
   ADMIN_LOGIN: "/campaign-admin/login",
+  ADMIN_FORGOT_PASSWORD: "/campaign-admin/forgotpasswd",
   ADMIN_DASHBOARD: "/campaign-admin",
   ADD_THEATRE: "/campaign-admin/theatres/add-theatre",
   ADD_MOVIE: "/campaign-admin/movies/add-movie",
@@ -17,6 +18,7 @@ const routes = {
   MANAGE_SHOWS:"/campaign-admin/manage-shows/:movieId?",
 
   EXEC_LOGIN: "/executive/login",
+  EXECUTIVE_FORGOT_PASSWORD: "/executive/forgotpasswd",
   EXEC_SIGNUP: "/executive/signup",
   EXEC_DASHBOARD: "/executive",
   EXEC_ADD_TRANSACTION: "/executive/transaction-form",

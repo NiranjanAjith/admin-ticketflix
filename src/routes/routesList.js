@@ -28,6 +28,8 @@ import SuccessPage from "../pages/prebook/Success";
 import FailurePage from "../pages/prebook/Failure";
 import TermsAndConditions from "../pages/components/TermsAndConditions";
 import PrivacyPolicy from "../pages/components/PrivacyPolicy";
+import AdminForgotPassword from "../pages/auth/AdminForgotPassword";
+import ExecutiveForgotPassword from "../pages/auth/ExecutiveForgotPassword";
 
 const AdminRoutes = () => {
   const AdminPrivateRoute = ({ children }) => {
@@ -52,6 +54,7 @@ const AdminRoutes = () => {
 
   return [
     <Route path={routes.ADMIN_LOGIN} element={<AdminLogin />} />,
+    <Route path={routes.ADMIN_FORGOT_PASSWORD} element={<AdminForgotPassword />} />,
     <Route
       path={routes.ADMIN_DASHBOARD}
       element={
@@ -140,6 +143,7 @@ const ExecutiveRoutes = () => {
   return [
     <Route path={routes.EXEC_LOGIN} element={<ExecutievLogin />} />,
     <Route path={routes.EXEC_SIGNUP} element={<ExecutiveSignup />} />,
+    <Route path={routes.EXECUTIVE_FORGOT_PASSWORD} element={<ExecutiveForgotPassword />} />,
     <Route
       path={routes.EXEC_DASHBOARD}
       element={
