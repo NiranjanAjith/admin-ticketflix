@@ -73,7 +73,7 @@ const ExecutiveDashboard = () => {
             id: doc.id,
             ...data,
             generated_date: data.generated_date ? data.generated_date.toDate() : null,
-            qrCodeUrl: data.imageUrl ?? ""
+            imageUrl: data.imageUrl ?? data.qrCodeUrl ?? ""
           };
         });
 
@@ -162,41 +162,41 @@ const ExecutiveDashboard = () => {
       try {
         console.log("Full coupon object:", coupon);
         console.log(`Processing coupon: ${coupon.coupon_code}`);
-        console.log(`QR Code URL: ${coupon.qrCodeUrl}`);
-        if (!coupon.qrCodeUrl) {
-          throw new Error("QR Code URL is missing");
+        console.log(`Image URL: ${coupon.imageUrl}`);
+        if (!coupon.imageUrl) {
+          throw new Error("Image URL is missing");
         }
-        const imgData = await fetchImage(coupon.qrCodeUrl);
+        const imgData = await fetchImage(coupon.imageUrl);
        
         if (imgData) {
           const xPosition = margin + (i % 2) * (imageWidth + margin);
           const yPosition = margin + Math.floor((i % imagesPerPage) / 2) * (imageHeight + margin);
           pdf.addImage(imgData, 'PNG', xPosition, yPosition, imageWidth, imageHeight);
           console.log(`Image added to PDF for coupon: ${coupon.coupon_code}`);
+          // Generate PDF blob
+          const pdfBlob = pdf.output('blob');
+          
+          // Create a download link
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(pdfBlob);
+          link.download = `coupons_${date.replace(/\s/g, '_')}.pdf`;
+          link.click();
+          URL.revokeObjectURL(link.href);
+
         } else {
           throw new Error("Failed to fetch image data");
         }
       } catch (error) {
         console.error(`Error processing coupon ${coupon.coupon_code}:`, error);
-        const xPosition = margin + (i % 2) * (imageWidth + margin);
-        const yPosition = margin + Math.floor((i % imagesPerPage) / 2) * (imageHeight + margin);
-        pdf.setFontSize(10);
-        pdf.text(`Error loading image for: ${coupon.coupon_code}`, xPosition, yPosition + imageHeight / 2);
+        // const xPosition = margin + (i % 2) * (imageWidth + margin);
+        // const yPosition = margin + Math.floor((i % imagesPerPage) / 2) * (imageHeight + margin);
+        // pdf.setFontSize(10);
+        // pdf.text(`Error loading image for: ${coupon.coupon_code}`, xPosition, yPosition + imageHeight / 2);
       }
     }
-
-    // Generate PDF blob
-    const pdfBlob = pdf.output('blob');
-    
-    // Create a download link
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(pdfBlob);
-    link.download = `coupons_${date.replace(/\s/g, '_')}.pdf`;
-    link.click();
+   
 
     // Clean up
-    URL.revokeObjectURL(link.href);
-
     console.log(`PDF generated for date: ${date}`);
   };
 
