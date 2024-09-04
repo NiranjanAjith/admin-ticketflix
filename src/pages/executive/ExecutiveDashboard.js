@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useContext } from "react";
-import { firestore, storage } from "../../firebase";
+import React, { useState, useEffect, useContext, useRef } from "react";
+import { firestore } from "../../firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { ref, getBytes, listAll } from "firebase/storage";
 import { AuthContext } from "../../context/AuthContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -9,6 +8,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { jsPDF } from "jspdf";
+import html2canvas from 'html2canvas';
+import { Link } from "react-router-dom";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
@@ -23,6 +24,7 @@ const ExecutiveDashboard = () => {
   });
   const [filterDate, setFilterDate] = useState(new Date());
   const { user } = useContext(AuthContext);
+  const couponRefs = useRef({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -91,18 +93,6 @@ const ExecutiveDashboard = () => {
 
         setGroupedCoupons(grouped);
 
-        // List contents of 'coupons' folder in storage
-        const listRef = ref(storage, 'coupons');
-        listAll(listRef)
-          .then((res) => {
-            console.log("Files in 'coupons' folder:");
-            res.items.forEach((itemRef) => {
-              console.log("Found file:", itemRef.fullPath);
-            });
-          }).catch((error) => {
-            console.log("Error listing files:", error);
-          });
-
       } catch (error) {
         console.error("Error fetching data:", error);
         setError("Error fetching data: " + error.message);
@@ -114,89 +104,41 @@ const ExecutiveDashboard = () => {
     fetchData();
   }, [user]);
 
-  const fetchImage = async (url) => {
-    try {
-      console.log("Attempting to fetch image from URL:", url);
-      
-      // Extract the path from the URL
-      const path = url.split('movie-campaign.appspot.com/o/')[1].split('?')[0];
-      const decodedPath = decodeURIComponent(path);
-      console.log("Decoded path:", decodedPath);
-      
-      // Create a reference to the file
-      const imageRef = ref(storage, decodedPath);
-      console.log("Image reference created:", imageRef);
-      console.log("Full path:", imageRef.fullPath);
-      
-      // Get the bytes directly from Firebase Storage
-      const bytes = await getBytes(imageRef);
-      console.log("Image bytes obtained");
-      
-      // Convert bytes to base64
-      const base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
-      return `data:image/png;base64,${base64}`;
-    } catch (error) {
-      console.error(`Error fetching image from ${url}:`, error);
-      if (error.code === 'storage/object-not-found') {
-        console.log("The specified object does not exist in Firebase Storage.");
-      }
-      return null;
-    }
-  };
-
-  const generatePDF = async (date, couponsForDate) => {
-    if (couponsForDate.length === 0) {
-      alert("No coupons found for the selected date.");
-      return;
-    }
+  const generatePDF = async (date, coupons) => {
     const pdf = new jsPDF();
-    const imagesPerPage = 4;
-    const imageWidth = 90;
-    const imageHeight = 90;
-    const margin = 15;
-    for (let i = 0; i < couponsForDate.length; i++) {
-      if (i > 0 && i % imagesPerPage === 0) {
-        pdf.addPage();
-      }
-      const coupon = couponsForDate[i];
-      try {
-        console.log("Full coupon object:", coupon);
-        console.log(`Processing coupon: ${coupon.coupon_code}`);
-        console.log(`Image URL: ${coupon.imageUrl}`);
-        if (!coupon.imageUrl) {
-          throw new Error("Image URL is missing");
-        }
-        const imgData = await fetchImage(coupon.imageUrl);
-       
-        if (imgData) {
-          const xPosition = margin + (i % 2) * (imageWidth + margin);
-          const yPosition = margin + Math.floor((i % imagesPerPage) / 2) * (imageHeight + margin);
-          pdf.addImage(imgData, 'PNG', xPosition, yPosition, imageWidth, imageHeight);
-          console.log(`Image added to PDF for coupon: ${coupon.coupon_code}`);
-          // Generate PDF blob
-          const pdfBlob = pdf.output('blob');
-          
-          // Create a download link
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(pdfBlob);
-          link.download = `coupons_${date.replace(/\s/g, '_')}.pdf`;
-          link.click();
-          URL.revokeObjectURL(link.href);
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
 
-        } else {
-          throw new Error("Failed to fetch image data");
+    for (let i = 0; i < coupons.length; i++) {
+      const coupon = coupons[i];
+      const element = couponRefs.current[coupon.id];
+      
+      if (element) {
+        const canvas = await html2canvas(element, {
+          logging: false,
+          useCORS: true,
+          scale: 2
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = pageWidth - 20;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        if (i > 0) {
+          pdf.addPage();
         }
-      } catch (error) {
-        console.error(`Error processing coupon ${coupon.coupon_code}:`, error);
-        // const xPosition = margin + (i % 2) * (imageWidth + margin);
-        // const yPosition = margin + Math.floor((i % imagesPerPage) / 2) * (imageHeight + margin);
-        // pdf.setFontSize(10);
-        // pdf.text(`Error loading image for: ${coupon.coupon_code}`, xPosition, yPosition + imageHeight / 2);
+        
+        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
       }
     }
-   
 
-    // Clean up
+    const pdfBlob = pdf.output('blob');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(pdfBlob);
+    link.download = `coupons_${date.replace(/\s/g, '_')}.pdf`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
     console.log(`PDF generated for date: ${date}`);
   };
 
@@ -222,7 +164,16 @@ const ExecutiveDashboard = () => {
               <ul className="space-y-2">
                 {couponsForDate.map((coupon) => (
                   <li key={coupon.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                    <span className="text-gray-800">{coupon.coupon_code}</span>
+                    <Link to={`/executive/share-coupon/${encodeURIComponent(coupon.imageUrl)}`} className="flex items-center">
+                      <div ref={el => couponRefs.current[coupon.id] = el} className="flex items-center">
+                        <img 
+                          src={coupon.imageUrl} 
+                          alt={`QR Code for ${coupon.coupon_code}`} 
+                          className="w-16 h-16 mr-4" 
+                        />
+                        <span className="text-gray-800">{coupon.coupon_code}</span>
+                      </div>
+                    </Link>
                     <div>
                       <span className={`mr-4 ${coupon.is_sold ? 'text-green-600' : 'text-yellow-600'}`}>
                         {coupon.is_sold ? 'Sold' : 'Unsold'}
@@ -291,11 +242,9 @@ const ExecutiveDashboard = () => {
                     data={pieChartData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
                     {pieChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -309,17 +258,16 @@ const ExecutiveDashboard = () => {
           </section>
 
           <section className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">Generated Coupons</h3>
-            <div className="mb-4">
-              <DatePicker
-                selected={filterDate}
-                onChange={date => setFilterDate(date)}
-                className="form-input rounded-md shadow-sm"
-                placeholderText="Filter from date"
-              />
-            </div>
-            {renderCouponList()}
+            <DatePicker
+              selected={filterDate}
+              onChange={(date) => setFilterDate(date)}
+              className="border rounded-md px-4 py-2"
+              dateFormat="yyyy/MM/dd"
+              maxDate={new Date()}
+            />
           </section>
+
+          {renderCouponList()}
         </div>
       </main>
       <Footer />

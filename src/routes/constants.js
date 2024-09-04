@@ -16,11 +16,14 @@ const routes = {
   MANAGE_THEATRES: "/campaign-admin/theatres",
   MANAGE_EXECS: "/campaign-admin/manage-executives",
   MANAGE_SHOWS:"/campaign-admin/manage-shows/:movieId?",
+  
+
 
   EXEC_LOGIN: "/executive/login",
   EXECUTIVE_FORGOT_PASSWORD: "/executive/forgotpasswd",
   EXEC_SIGNUP: "/executive/signup",
   EXEC_DASHBOARD: "/executive",
+  SHARE_COUPON:"/executive/share-coupon/:couponId",
   EXEC_ADD_TRANSACTION: "/executive/transaction-form",
   EXEC_COUPON_GEN: "/executive/coupon-generation",
 };
