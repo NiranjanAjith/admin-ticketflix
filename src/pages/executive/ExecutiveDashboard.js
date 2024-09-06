@@ -105,48 +105,61 @@ const ExecutiveDashboard = () => {
   }, [user]);
 
   const generatePDF = async (date, coupons) => {
-    const pdf = new jsPDF();
+    const pdf = new jsPDF({
+      unit: "mm",
+      format: "a4",
+      orientation: "portrait",
+    });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-
+    const margin = 10;
+    const spacing = 5; // Add spacing between coupons
+    const ticketWidth = pageWidth - 2 * margin;
+    const ticketHeight = 75; // Slightly reduced height to accommodate spacing
+    const ticketsPerPage = Math.floor((pageHeight - 2 * margin) / (ticketHeight + spacing));
+  
     for (let i = 0; i < coupons.length; i++) {
+      if (i > 0 && i % ticketsPerPage === 0) {
+        pdf.addPage();
+      }
+  
       const coupon = coupons[i];
       const element = couponRefs.current[coupon.id];
-      
+  
       if (element) {
-        const canvas = await html2canvas(element, {
+        const canvas = await html2canvas(element.querySelector('img'), {
           logging: false,
           useCORS: true,
           scale: 2
         });
-        
+  
         const imgData = canvas.toDataURL('image/png');
-        const imgWidth = pageWidth - 20;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        if (i > 0) {
-          pdf.addPage();
-        }
-        
-        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+        const startY = margin + (i % ticketsPerPage) * (ticketHeight + spacing);
+  
+        pdf.addImage(imgData, 'PNG', margin, startY, ticketWidth, ticketHeight);
       }
     }
-
+  
     const pdfBlob = pdf.output('blob');
     const link = document.createElement('a');
     link.href = URL.createObjectURL(pdfBlob);
     link.download = `coupons_${date.replace(/\s/g, '_')}.pdf`;
     link.click();
     URL.revokeObjectURL(link.href);
-
+  
     console.log(`PDF generated for date: ${date}`);
   };
 
   const renderCouponList = () => {
     const filteredGroupedCoupons = Object.entries(groupedCoupons)
-      .filter(([date]) => new Date(date) >= filterDate)
+      .filter(([date]) => {
+        const couponDate = new Date(date);
+        const filterDateStart = new Date(filterDate);
+        filterDateStart.setHours(0, 0, 0, 0);
+        return couponDate >= filterDateStart;
+      })
       .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA));
-
+  
     return (
       <section className="mb-8">
         {filteredGroupedCoupons.length > 0 ? (
@@ -161,24 +174,31 @@ const ExecutiveDashboard = () => {
                   Download PDF
                 </button>
               </div>
-              <ul className="space-y-2">
+              <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {couponsForDate.map((coupon) => (
-                  <li key={coupon.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                    <Link to={`/executive/share-coupon/${encodeURIComponent(coupon.imageUrl)}`} className="flex items-center">
-                      <div ref={el => couponRefs.current[coupon.id] = el} className="flex items-center">
+                  <li key={coupon.id} className="bg-white shadow-md rounded-lg overflow-hidden">
+                    <Link 
+                      to={`/executive/share-coupon/${encodeURIComponent(coupon.id)}`} 
+                      className="block"
+                    >
+                      <div ref={el => couponRefs.current[coupon.id] = el} className="p-4">
                         <img 
                           src={coupon.imageUrl} 
-                          alt={`QR Code for ${coupon.coupon_code}`} 
-                          className="w-16 h-16 mr-4" 
+                          alt={`Coupon ${coupon.coupon_code}`} 
+                          className="w-full h-48 object-cover rounded" 
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/path/to/fallback/image.png'; // Replace with your fallback image
+                          }}
                         />
-                        <span className="text-gray-800">{coupon.coupon_code}</span>
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="text-lg font-semibold text-gray-800">{coupon.coupon_code}</span>
+                          <span className={`px-2 py-1 rounded text-sm ${coupon.is_sold ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {coupon.is_sold ? 'Sold' : 'Unsold'}
+                          </span>
+                        </div>
                       </div>
                     </Link>
-                    <div>
-                      <span className={`mr-4 ${coupon.is_sold ? 'text-green-600' : 'text-yellow-600'}`}>
-                        {coupon.is_sold ? 'Sold' : 'Unsold'}
-                      </span>
-                    </div>
                   </li>
                 ))}
               </ul>
