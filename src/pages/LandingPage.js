@@ -26,7 +26,7 @@ function LandingPage() {
 
   // Function to handle button click and navigate
   const handlePrebookClick = () => {
-    navigate('/pre-book'); // Replace '/pre-book' with the path you want to navigate to
+    navigate('/pre-book',{ state: 'Turkish Tharkkam'}); // Replace '/pre-book' with the path you want to navigate to
   };
 
   return (
@@ -37,7 +37,6 @@ function LandingPage() {
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-center">
               <div className="md:w-1/2 mb-8 md:mb-0 md:pr-8 flex flex-col items-center md:items-start">
-                {/* Added flex and alignment */}
                 <h2 className="text-4xl font-bold text-gray-800 mb-4 text-center md:text-left">
                   Turkish Tharkkam
                 </h2>
