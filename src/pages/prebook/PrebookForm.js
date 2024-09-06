@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from "../components/Header";
 import Footer from '../components/Footer';
 import { db } from '../../firebase';
-import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, addDoc, doc, updateDoc } from 'firebase/firestore';
 
 function PrebookingForm() {
+    const location = useLocation();
+    const movieName = useMemo(() => location.state || '', [location.state]);
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
         email: '',
         location: '',
-        theatre: '',
+        theatres: [],
         class: '',
         executiveCode: '',
         numberOfSeats: '1'
@@ -20,6 +22,8 @@ function PrebookingForm() {
     const [theatres, setTheatres] = useState([]);
     const [seatTypes, setSeatTypes] = useState([]);
     const [amount, setAmount] = useState(null);
+    const [isTheatreListOpen, setIsTheatreListOpen] = useState(false);
+    const theatreListRef = useRef(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -28,7 +32,6 @@ function PrebookingForm() {
                 const theatresCol = collection(db, 'theatres');
                 const theatresSnapshot = await getDocs(theatresCol);
                 const theatresList = theatresSnapshot.docs.map(doc => doc.data());
-
                 const uniqueLocations = [...new Set(theatresList.map(theatre => theatre.district))];
                 setLocations(uniqueLocations);
                 setTheatres([]);
@@ -37,7 +40,6 @@ function PrebookingForm() {
                 console.error("Error fetching locations: ", error);
             }
         };
-
         fetchLocations();
     }, []);
 
@@ -48,99 +50,141 @@ function PrebookingForm() {
                     const theatresCol = collection(db, 'theatres');
                     const theatresQuery = query(theatresCol, where('district', '==', formData.location));
                     const theatresSnapshot = await getDocs(theatresQuery);
-
                     const owners = theatresSnapshot.docs.map(doc => ({
                         id: doc.id,
                         owner: doc.data().owner,
+                        checked: false,
                     }));
-
                     setTheatres(owners);
-                    setFormData(prev => ({ ...prev, theatre: '', class: '' }));
+                    setFormData(prev => ({ ...prev, theatres: [], class: '' }));
                     setSeatTypes([]);
                 }
             } catch (error) {
                 console.error("Error fetching theatres:", error);
             }
         };
-
         fetchTheatres();
     }, [formData.location]);
 
     useEffect(() => {
         const fetchSeatTypes = async () => {
             try {
-                if (formData.theatre) {
-                    const selectedTheatre = theatres.find(t => t.owner === formData.theatre);
-                    if (selectedTheatre) {
-                        const theatreDoc = doc(db, 'theatres', selectedTheatre.id);
-                        const theatreSnapshot = await getDoc(theatreDoc);
-    
-                        if (theatreSnapshot.exists()) {
-                            const theatreData = theatreSnapshot.data();
-                            const seatMatrixLayout = theatreData['seat-matrix-layout'];
-    
-                            if (seatMatrixLayout) {
-                                const screenData = seatMatrixLayout['screen-1'];
-                                const seatMatrix = screenData.matrix;
-    
-                                const seatTypes = Object.values(seatMatrix)
-                                    .flatMap(row => Object.values(row.seats)
-                                    .map(seat => row.type))
-                                    .filter(Boolean);
-    
-                                const uniqueSeatTypes = [...new Set(seatTypes)];
-    
-                                setSeatTypes(uniqueSeatTypes);
-                                fetchAmount(selectedTheatre.id, uniqueSeatTypes);
-                            } else {
-                                setSeatTypes([]);
-                                setAmount(null);
-                            }
+                if (formData.theatres.length > 0) {
+                    const moviesCol = collection(db, 'movies');
+                    const moviesQuery = query(moviesCol, where('title', '==', movieName));
+                    const moviesSnapshot = await getDocs(moviesQuery);
+                    if (!moviesSnapshot.empty) {
+                        const movieData = moviesSnapshot.docs[0].data();
+                        const prebookPrice = movieData.prebookPrice;
+                        if (prebookPrice) {
+                            const seatTypes = Object.keys(prebookPrice);
+                            setSeatTypes(seatTypes);
+                            fetchAmount(prebookPrice);
                         } else {
                             setSeatTypes([]);
                             setAmount(null);
                         }
+                    } else {
+                        console.warn("No movie found with the title:", movieName);
+                        setSeatTypes([]);
+                        setAmount(null);
                     }
+                } else {
+                    setSeatTypes([]);
+                    setAmount(null);
                 }
             } catch (error) {
-                console.error("Error fetching seat types: ", error);
+                console.error("Error fetching seat types:", error);
             }
         };
 
-        const fetchAmount = async (theatreId) => {
-            try {
-                if (formData.class) {
-                    const showsCol = collection(db, 'shows');
-                    const showsQuery = query(showsCol, where('theaterId', '==', theatreId));
-                    const showsSnapshot = await getDocs(showsQuery);
-
-                    if (!showsSnapshot.empty) {
-                        const showData = showsSnapshot.docs[0].data();
-                        const ticketPrices = showData.ticketPrices;
-                        const selectedClassPrice = ticketPrices[formData.class];
-
-                        if (selectedClassPrice) {
-                            setAmount(selectedClassPrice * formData.numberOfSeats);
-                        } else {
-                            setAmount(0);
-                        }
-                    }
+        const fetchAmount = (prebookPrice) => {
+            if (formData.class && prebookPrice) {
+                const selectedClassPrice = prebookPrice[formData.class];
+                if (selectedClassPrice) {
+                    setAmount(selectedClassPrice * formData.numberOfSeats);
+                } else {
+                    setAmount(0);
                 }
-            } catch (error) {
-                console.error("Error fetching amount:", error);
+            } else {
+                setAmount(null);
             }
         };
 
         fetchSeatTypes();
-    }, [formData.theatre, formData.class, formData.numberOfSeats, theatres]);
+    }, [formData.theatres, formData.class, formData.numberOfSeats, movieName]);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (theatreListRef.current && !theatreListRef.current.contains(event.target)) {
+                setIsTheatreListOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleTheatreChange = (theatreId) => {
+        const updatedTheatres = theatres.map(theatre =>
+            theatre.id === theatreId ? { ...theatre, checked: !theatre.checked } : theatre
+        );
+        setTheatres(updatedTheatres);
+        const selectedTheatres = updatedTheatres
+            .filter(theatre => theatre.checked)
+            .map(theatre => theatre.owner);
+        setFormData({ ...formData, theatres: selectedTheatres });
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        navigate('/payment');
+        try {
+            // Write to 'prebook' collection
+            const prebookData = {
+                ...formData,
+                movieName,
+                amount,
+                timestamp: new Date()
+            };
+            const prebookCol = collection(db, 'prebook');
+            await addDoc(prebookCol, prebookData);
+            console.log("Prebooking data written to Firestore");
+
+            // Update 'movies' collection
+            const moviesCol = collection(db, 'movies');
+            const movieQuery = query(moviesCol, where('title', '==', movieName));
+            const movieSnapshot = await getDocs(movieQuery);
+
+            if (!movieSnapshot.empty) {
+                const movieDoc = movieSnapshot.docs[0];
+                const movieRef = doc(db, 'movies', movieDoc.id);
+                const movieData = movieDoc.data();
+
+                let updatedTheatres = movieData.theatres || {};
+
+                formData.theatres.forEach(theatre => {
+                    if (updatedTheatres[theatre]) {
+                        updatedTheatres[theatre] += parseInt(formData.numberOfSeats);
+                    } else {
+                        updatedTheatres[theatre] = parseInt(formData.numberOfSeats);
+                    }
+                });
+
+                await updateDoc(movieRef, { theatres: updatedTheatres });
+                console.log("Movie document updated in Firestore");
+            } else {
+                console.warn("No movie found with the title:", movieName);
+            }
+
+            navigate('/payment');
+        } catch (error) {
+            console.error("Error writing data to Firestore: ", error);
+        }
     };
 
     return (
@@ -211,26 +255,35 @@ function PrebookingForm() {
                                            peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm"
                             ></label>
                         </div>
-                        <div className="relative">
-                            <select
-                                id="theatre"
-                                name="theatre"
-                                value={formData.theatre}
-                                onChange={handleChange}
+                        <div className="relative" ref={theatreListRef}>
+                            <button
+                                type="button"
+                                onClick={() => setIsTheatreListOpen(!isTheatreListOpen)}
                                 className="peer w-full px-3 py-2 border-b-2 border-gray-300 bg-transparent focus:outline-none focus:border-blue-500"
-                                required
                             >
-                                <option value="" disabled>Theatre</option>
-                                {theatres.map(theatre => (
-                                    <option key={theatre.id} value={theatre.owner}>{theatre.owner}</option>
-                                ))}
-                            </select>
-                            <label
-                                htmlFor="theatre"
-                                className="absolute left-3 -top-3.5 text-gray-600 text-sm transition-all 
-                                           peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2
-                                           peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm"
-                            ></label>
+                                Preferred Theatres ({formData.theatres.length} selected)
+                            </button>
+                            {isTheatreListOpen && (
+                                <div className="absolute left-3 z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                                    {theatres.map(theatre => (
+                                        <div
+                                            key={theatre.id}
+                                            className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                            onClick={() => handleTheatreChange(theatre.id)}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={theatre.checked}
+                                                onChange={() => {}}
+                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                            />
+                                            <label className="ml-3 block text-sm text-gray-900">
+                                                {theatre.owner}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <div className="relative">
                             <select
@@ -242,8 +295,8 @@ function PrebookingForm() {
                                 required
                             >
                                 <option value="" disabled>Class</option>
-                                {seatTypes.map(type => (
-                                    <option key={type} value={type}>{type}</option>
+                                {seatTypes.map((seatType, index) => (
+                                    <option key={index} value={seatType}>{seatType}</option>
                                 ))}
                             </select>
                             <label
@@ -252,26 +305,6 @@ function PrebookingForm() {
                                            peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2
                                            peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm"
                             ></label>
-                        </div>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                id="numberOfSeats"
-                                name="numberOfSeats"
-                                value={formData.numberOfSeats}
-                                onChange={handleChange}
-                                className="peer w-full px-3 py-2 border-b-2 border-gray-300 bg-transparent focus:outline-none focus:border-blue-500"
-                                placeholder=" "
-                                required
-                            />
-                            <label
-                                htmlFor="numberOfSeats"
-                                className="absolute left-3 -top-3.5 text-gray-600 text-sm transition-all 
-                                           peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2
-                                           peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm"
-                            >
-                                Seats
-                            </label>
                         </div>
                         <div className="relative">
                             <input
@@ -289,12 +322,32 @@ function PrebookingForm() {
                                            peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2
                                            peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm"
                             >
-                                Executive Code
+                                Executive Code (optional)
                             </label>
+                        </div>
+                        <div className="relative">
+                            <select
+                                id="numberOfSeats"
+                                name="numberOfSeats"
+                                value={formData.numberOfSeats}
+                                onChange={handleChange}
+                                className="peer w-full px-3 py-2 border-b-2 border-gray-300 bg-transparent focus:outline-none focus:border-blue-500"
+                                required
+                            >
+                                {[...Array(10)].map((_, i) => (
+                                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                                ))}
+                            </select>
+                            <label
+                                htmlFor="numberOfSeats"
+                                className="absolute left-3 -top-3.5 text-gray-600 text-sm transition-all 
+                                           peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2
+                                           peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm"
+                            ></label>
                         </div>
                         <button
                             type="submit"
-                            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
                         >
                             Proceed to Pay {amount}
                         </button>
