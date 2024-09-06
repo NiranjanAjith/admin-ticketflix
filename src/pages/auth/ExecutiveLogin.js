@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { auth, firestore } from "../../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -45,10 +45,6 @@ const ExecutiveLogin = () => {
     }
   };
 
-  // const handleToggle = () => { // FIXME: AVOID SINGLE LINE FUNCTIONS 
-  //   navigate(routes.ADMIN_LOGIN);
-  // };
-
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 to-black text-white">
       <nav className="bg-black bg-opacity-80 shadow-md">
@@ -70,20 +66,6 @@ const ExecutiveLogin = () => {
             <p className="text-center mb-8 text-gray-300">
               Enter the backstage of cinema magic
             </p>
-            
-            {/* Toggle Switch ;; NO NEED FOR THIS */}
-            {/* <div className="flex items-center justify-center mb-6">
-              <span className="mr-3 text-gray-400">Admin</span>
-              <div
-                className="w-14 h-7 flex items-center bg-gray-300 rounded-full p-1 cursor-pointer"
-                onClick={handleToggle}
-              >
-                <div
-                  className="bg-yellow-500 w-5 h-5 rounded-full shadow-md transform duration-300 ease-in-out translate-x-7"
-                ></div>
-              </div>
-              <span className="ml-3 text-yellow-500">Executive</span>
-            </div> */}
 
             {error && (
               <div className="bg-yellow-500 text-white p-3 rounded mb-4 text-sm">
@@ -147,13 +129,21 @@ const ExecutiveLogin = () => {
                 <ChevronRight className="ml-2" size={18} />
               </button>
             </form>
+            <div className="mt-4 text-center">
+              <Link
+                to={routes.EXECUTIVE_FORGOT_PASSWORD}
+                className="text-sm text-yellow-500 hover:text-yellow-600 hover:underline transition-colors duration-300"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="mt-6 text-center">
-              <a
-                href={routes.EXEC_SIGNUP}
-                className="text-sm text-yellow-500 hover:text-yellow-600 hover:no-underline transition-colors duration-300"
+              <Link
+                to={routes.EXEC_SIGNUP}
+                className="text-sm text-yellow-500 hover:text-yellow-600 hover:underline transition-colors duration-300"
               >
                 Don't have an executive account? Signup here.
-              </a>
+              </Link>
             </div>
           </div>
         </div>

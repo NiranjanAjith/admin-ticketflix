@@ -9,7 +9,7 @@ import ManageTheatresPage from "../pages/admin/ManageTheatresPage";
 import ManageMoviesPage from "../pages/admin/ManageMoviesPage";
 import ManageExecutivesPage from "../pages/admin/ManageExecutivesPage";
 
-import ExecutievLogin from "../pages/auth/ExecutiveLogin";
+import ExecutiveLogin from "../pages/auth/ExecutiveLogin";
 import ExecutiveSignup from "../pages/auth/ExecutiveSignup";
 import ExecutiveDashboard from "../pages/executive/ExecutiveDashboard";
 import CouponGeneration from "../pages/executive/CouponGenerationPage";
@@ -28,6 +28,9 @@ import SuccessPage from "../pages/prebook/Success";
 import FailurePage from "../pages/prebook/Failure";
 import TermsAndConditions from "../pages/components/TermsAndConditions";
 import PrivacyPolicy from "../pages/components/PrivacyPolicy";
+import AdminForgotPassword from "../pages/auth/AdminForgotPassword";
+import ExecutiveForgotPassword from "../pages/auth/ExecutiveForgotPassword";
+import ShareCoupon from "../pages/executive/ShareCoupon";
 
 const AdminRoutes = () => {
   const AdminPrivateRoute = ({ children }) => {
@@ -52,6 +55,7 @@ const AdminRoutes = () => {
 
   return [
     <Route path={routes.ADMIN_LOGIN} element={<AdminLogin />} />,
+    <Route path={routes.ADMIN_FORGOT_PASSWORD} element={<AdminForgotPassword />} />,
     <Route
       path={routes.ADMIN_DASHBOARD}
       element={
@@ -138,8 +142,9 @@ const ExecutiveRoutes = () => {
   };
 
   return [
-    <Route path={routes.EXEC_LOGIN} element={<ExecutievLogin />} />,
+    <Route path={routes.EXEC_LOGIN} element={<ExecutiveLogin />} />,
     <Route path={routes.EXEC_SIGNUP} element={<ExecutiveSignup />} />,
+    <Route path={routes.EXECUTIVE_FORGOT_PASSWORD} element={<ExecutiveForgotPassword />} />,
     <Route
       path={routes.EXEC_DASHBOARD}
       element={
@@ -153,6 +158,14 @@ const ExecutiveRoutes = () => {
       element={
         <ExecutivePrivateRoute>
           <TransactionForm />
+        </ExecutivePrivateRoute>
+      }
+    />,
+    <Route
+      path={routes.SHARE_COUPON}
+      element={
+        <ExecutivePrivateRoute>
+          <ShareCoupon />
         </ExecutivePrivateRoute>
       }
     />,

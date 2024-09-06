@@ -76,40 +76,40 @@ const ManageShowsPage = () => {
   }, [fetchMovies, fetchTheaters, fetchShows]);
 
   const handleTheaterChange = (e) => {
-    const theaterId = e.target.value;
+    const theatreID = e.target.value;
     const isChecked = e.target.checked;
     
     if (isChecked) {
       setScreenSelections(prev => ({
         ...prev,
-        [theaterId]: {}
+        [theatreID]: {}
       }));
     } else {
       setScreenSelections(prev => {
-        const { [theaterId]: _, ...rest } = prev;
+        const { [theatreID]: _, ...rest } = prev;
         return rest;
       });
       setShowtimes(prev => {
-        const { [theaterId]: _, ...rest } = prev;
+        const { [theatreID]: _, ...rest } = prev;
         return rest;
       });
     }
   };
 
-  const handleScreenChange = (theaterId, screenName) => {
+  const handleScreenChange = (theatreID, screenName) => {
     setScreenSelections(prev => ({
       ...prev,
-      [theaterId]: {
-        ...prev[theaterId],
-        [screenName]: !prev[theaterId]?.[screenName]
+      [theatreID]: {
+        ...prev[theatreID],
+        [screenName]: !prev[theatreID]?.[screenName]
       }
     }));
 
-    if (!screenSelections[theaterId]?.[screenName]) {
+    if (!screenSelections[theatreID]?.[screenName]) {
       setShowtimes(prev => ({
         ...prev,
-        [theaterId]: {
-          ...prev[theaterId],
+        [theatreID]: {
+          ...prev[theatreID],
           [screenName]: {
             startDate: '',
             endDate: '',
@@ -120,28 +120,28 @@ const ManageShowsPage = () => {
     }
   };
 
-  const handleSeparateTicketPricesChange = (theaterId, screenName) => {
+  const handleSeparateTicketPricesChange = (theatreID, screenName) => {
     setSeparateTicketPrices((prev) => ({
       ...prev,
-      [theaterId]: {
-        ...prev[theaterId],
-        [screenName]: !prev[theaterId]?.[screenName],
+      [theatreID]: {
+        ...prev[theatreID],
+        [screenName]: !prev[theatreID]?.[screenName],
       },
     }));
 
     setShowtimes((prev) => {
       const updatedShowtimes = { ...prev };
-      if (!updatedShowtimes[theaterId]) {
-        updatedShowtimes[theaterId] = {};
+      if (!updatedShowtimes[theatreID]) {
+        updatedShowtimes[theatreID] = {};
       }
-      if (!updatedShowtimes[theaterId][screenName]) {
-        updatedShowtimes[theaterId][screenName] = {};
+      if (!updatedShowtimes[theatreID][screenName]) {
+        updatedShowtimes[theatreID][screenName] = {};
       }
 
-      if (!prev[theaterId]?.[screenName]?.separateTicketPrices) {
+      if (!prev[theatreID]?.[screenName]?.separateTicketPrices) {
         // Switching to separate ticket prices
-        const startDate = new Date(updatedShowtimes[theaterId][screenName].startDate || new Date());
-        const endDate = new Date(updatedShowtimes[theaterId][screenName].endDate || new Date());
+        const startDate = new Date(updatedShowtimes[theatreID][screenName].startDate || new Date());
+        const endDate = new Date(updatedShowtimes[theatreID][screenName].endDate || new Date());
         const dailyShowtimes = [];
 
         for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
@@ -151,18 +151,18 @@ const ManageShowsPage = () => {
           });
         }
 
-        updatedShowtimes[theaterId][screenName].dailyShowtimes = dailyShowtimes;
+        updatedShowtimes[theatreID][screenName].dailyShowtimes = dailyShowtimes;
       } else {
         // Switching to common ticket prices
-        updatedShowtimes[theaterId][screenName].showtimes = [];
+        updatedShowtimes[theatreID][screenName].showtimes = [];
       }
 
       return updatedShowtimes;
     });
   };
 
-  const addShowtime = (theaterId, screenName, dateIndex = null) => {
-    const theater = theaters.find(t => t.id === theaterId);
+  const addShowtime = (theatreID, screenName, dateIndex = null) => {
+    const theater = theaters.find(t => t.id === theatreID);
     const seatTypes = new Set();
     Object.values(theater['seat-matrix-layout'][screenName].matrix).forEach(row => {
       seatTypes.add(row.type);
@@ -175,92 +175,92 @@ const ManageShowsPage = () => {
 
     setShowtimes(prev => {
       const updatedShowtimes = {...prev};
-      if (!updatedShowtimes[theaterId]) {
-        updatedShowtimes[theaterId] = {};
+      if (!updatedShowtimes[theatreID]) {
+        updatedShowtimes[theatreID] = {};
       }
-      if (!updatedShowtimes[theaterId][screenName]) {
-        updatedShowtimes[theaterId][screenName] = {};
+      if (!updatedShowtimes[theatreID][screenName]) {
+        updatedShowtimes[theatreID][screenName] = {};
       }
 
-      if (separateTicketPrices[theaterId]?.[screenName]) {
+      if (separateTicketPrices[theatreID]?.[screenName]) {
         // If separate ticket prices are enabled
-        if (!updatedShowtimes[theaterId][screenName].dailyShowtimes) {
-          updatedShowtimes[theaterId][screenName].dailyShowtimes = [];
+        if (!updatedShowtimes[theatreID][screenName].dailyShowtimes) {
+          updatedShowtimes[theatreID][screenName].dailyShowtimes = [];
         }
-        if (!updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex]) {
-          updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex] = { showtimes: [] };
+        if (!updatedShowtimes[theatreID][screenName].dailyShowtimes[dateIndex]) {
+          updatedShowtimes[theatreID][screenName].dailyShowtimes[dateIndex] = { showtimes: [] };
         }
-        updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes.push(newShowtime);
+        updatedShowtimes[theatreID][screenName].dailyShowtimes[dateIndex].showtimes.push(newShowtime);
       } else {
         // If common ticket prices are used
-        if (!updatedShowtimes[theaterId][screenName].showtimes) {
-          updatedShowtimes[theaterId][screenName].showtimes = [];
+        if (!updatedShowtimes[theatreID][screenName].showtimes) {
+          updatedShowtimes[theatreID][screenName].showtimes = [];
         }
-        updatedShowtimes[theaterId][screenName].showtimes.push(newShowtime);
+        updatedShowtimes[theatreID][screenName].showtimes.push(newShowtime);
       }
       return updatedShowtimes;
     });
   };
 
-  const handleShowtimeChange = (theaterId, screenName, dateIndex, showtimeIndex, field, value) => {
+  const handleShowtimeChange = (theatreID, screenName, dateIndex, showtimeIndex, field, value) => {
     setShowtimes(prev => {
       const updatedShowtimes = {...prev};
-      if (separateTicketPrices[theaterId]?.[screenName]) {
+      if (separateTicketPrices[theatreID]?.[screenName]) {
         // If separate ticket prices are enabled
-        updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes[showtimeIndex][field] = value;
+        updatedShowtimes[theatreID][screenName].dailyShowtimes[dateIndex].showtimes[showtimeIndex][field] = value;
       } else {
         // If common ticket prices are used
-        updatedShowtimes[theaterId][screenName].showtimes[showtimeIndex][field] = value;
+        updatedShowtimes[theatreID][screenName].showtimes[showtimeIndex][field] = value;
       }
       return updatedShowtimes;
     });
   };
 
-  const handleTicketPriceChange = (theaterId, screenName, dateIndex, showtimeIndex, seatType, price) => {
+  const handleTicketPriceChange = (theatreID, screenName, dateIndex, showtimeIndex, seatType, price) => {
     setShowtimes(prev => {
       const updatedShowtimes = {...prev};
-      if (separateTicketPrices[theaterId]?.[screenName]) {
+      if (separateTicketPrices[theatreID]?.[screenName]) {
         // If separate ticket prices are enabled
-        updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes[showtimeIndex].ticketPrices[seatType] = price;
+        updatedShowtimes[theatreID][screenName].dailyShowtimes[dateIndex].showtimes[showtimeIndex].ticketPrices[seatType] = price;
       } else {
         // If common ticket prices are used
-        updatedShowtimes[theaterId][screenName].showtimes[showtimeIndex].ticketPrices[seatType] = price;
+        updatedShowtimes[theatreID][screenName].showtimes[showtimeIndex].ticketPrices[seatType] = price;
       }
       return updatedShowtimes;
     });
   };
 
-  const removeShowtime = (theaterId, screenName, dateIndex, showtimeIndex) => {
+  const removeShowtime = (theatreID, screenName, dateIndex, showtimeIndex) => {
     setShowtimes(prev => {
       const updatedShowtimes = {...prev};
-      if (separateTicketPrices[theaterId]?.[screenName]) {
+      if (separateTicketPrices[theatreID]?.[screenName]) {
         // If separate ticket prices are enabled
-        updatedShowtimes[theaterId][screenName].dailyShowtimes[dateIndex].showtimes.splice(showtimeIndex, 1);
+        updatedShowtimes[theatreID][screenName].dailyShowtimes[dateIndex].showtimes.splice(showtimeIndex, 1);
       } else {
         // If common ticket prices are used
-        updatedShowtimes[theaterId][screenName].showtimes.splice(showtimeIndex, 1);
+        updatedShowtimes[theatreID][screenName].showtimes.splice(showtimeIndex, 1);
       }
       return updatedShowtimes;
     });
   };
 
-  const handleDateChange = (theaterId, screenName, field, value) => {
+  const handleDateChange = (theatreID, screenName, field, value) => {
     setShowtimes(prev => {
       const updatedShowtimes = {
         ...prev,
-        [theaterId]: {
-          ...prev[theaterId],
+        [theatreID]: {
+          ...prev[theatreID],
           [screenName]: {
-            ...prev[theaterId][screenName],
+            ...prev[theatreID][screenName],
             [field]: value
           }
         }
       };
   
       // If separate ticket prices are enabled, update the daily showtimes
-      if (separateTicketPrices[theaterId]?.[screenName]) {
-        const startDate = new Date(field === 'startDate' ? value : updatedShowtimes[theaterId][screenName].startDate);
-        const endDate = new Date(field === 'endDate' ? value : updatedShowtimes[theaterId][screenName].endDate);
+      if (separateTicketPrices[theatreID]?.[screenName]) {
+        const startDate = new Date(field === 'startDate' ? value : updatedShowtimes[theatreID][screenName].startDate);
+        const endDate = new Date(field === 'endDate' ? value : updatedShowtimes[theatreID][screenName].endDate);
         const dailyShowtimes = [];
   
         for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
@@ -270,7 +270,7 @@ const ManageShowsPage = () => {
           });
         }
   
-        updatedShowtimes[theaterId][screenName].dailyShowtimes = dailyShowtimes;
+        updatedShowtimes[theatreID][screenName].dailyShowtimes = dailyShowtimes;
       }
   
       return updatedShowtimes;
@@ -285,17 +285,17 @@ const ManageShowsPage = () => {
     }
 
     try {
-      const showsPromises = Object.entries(screenSelections).flatMap(([theaterId, screens]) => 
+      const showsPromises = Object.entries(screenSelections).flatMap(([theatreID, screens]) => 
         Object.entries(screens).flatMap(([screenName, isSelected]) => {
-          if (isSelected && showtimes[theaterId] && showtimes[theaterId][screenName]) {
-            const { startDate, endDate } = showtimes[theaterId][screenName];
+          if (isSelected && showtimes[theatreID] && showtimes[theatreID][screenName]) {
+            const { startDate, endDate } = showtimes[theatreID][screenName];
             if (!startDate || !endDate) {
               throw new Error(`Start date and end date are required for ${screenName}`);
             }
             
-            if (separateTicketPrices[theaterId]?.[screenName]) {
+            if (separateTicketPrices[theatreID]?.[screenName]) {
               // Handle separate ticket prices case
-              return showtimes[theaterId][screenName].dailyShowtimes.flatMap(day => 
+              return showtimes[theatreID][screenName].dailyShowtimes.flatMap(day => 
                 day.showtimes.map(async (showtime) => {
                   const [hours, minutes] = showtime.time.split(':');
                   const showtimeDate = new Date(day.date);
@@ -307,18 +307,18 @@ const ManageShowsPage = () => {
 
                   const showData = {
                     movieId: selectedMovie,
-                    theaterId,
+                    theatreID,
                     screenName,
                     datetime: Timestamp.fromDate(showtimeDate),
                     ticketPrices: showtime.ticketPrices,
-                    seatMatrix: theaters.find(t => t.id === theaterId)['seat-matrix-layout'][screenName]
+                    seatMatrix: theaters.find(t => t.id === theatreID)['seat-matrix-layout'][screenName]
                   };
                   return addDoc(collection(firestore, 'shows'), showData);
                 })
               );
             } else {
               // Handle common ticket prices case
-              return showtimes[theaterId][screenName].showtimes.map(async (showtime) => {
+              return showtimes[theatreID][screenName].showtimes.map(async (showtime) => {
                 const [hours, minutes] = showtime.time.split(':');
                 const showtimeDate = new Date(startDate);
                 showtimeDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
@@ -329,11 +329,11 @@ const ManageShowsPage = () => {
 
                 const showData = {
                   movieId: selectedMovie,
-                  theaterId,
+                  theatreID,
                   screenName,
                   datetime: Timestamp.fromDate(showtimeDate),
                   ticketPrices: showtime.ticketPrices,
-                  seatMatrix: theaters.find(t => t.id === theaterId)['seat-matrix-layout'][screenName]
+                  seatMatrix: theaters.find(t => t.id === theatreID)['seat-matrix-layout'][screenName]
                 };
                 return addDoc(collection(firestore, 'shows'), showData);
               });
@@ -392,7 +392,7 @@ const ManageShowsPage = () => {
   const filteredShows = shows.filter((show) => {
     const showDate = show.datetime.toDate();
     return (
-      (!filters.theater || show.theaterId === filters.theater) &&
+      (!filters.theater || show.theatreID === filters.theater) &&
       (!filters.movie || show.movieId === filters.movie) &&
       (!filters.date ||
         showDate.toISOString().split("T")[0] === filters.date) &&
@@ -486,10 +486,10 @@ const ManageShowsPage = () => {
                 </div>
               ))}
             </div>
-            {Object.entries(screenSelections).map(([theaterId, screens]) => (
-              <div key={theaterId} className="mt-6 p-6 border border-gray-200 rounded-md bg-gray-50">
+            {Object.entries(screenSelections).map(([theatreID, screens]) => (
+              <div key={theatreID} className="mt-6 p-6 border border-gray-200 rounded-md bg-gray-50">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  {theaters.find(t => t.id === theaterId)['theatre-name']}
+                  {theaters.find(t => t.id === theatreID)['theatre-name']}
                 </h3>
                 
                 {Object.entries(screens).map(([screenName, isSelected]) => isSelected && (
@@ -500,8 +500,8 @@ const ManageShowsPage = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Start Date:</label>
                         <input
                           type="date"
-                          value={showtimes[theaterId]?.[screenName]?.startDate || ''}
-                          onChange={(e) => handleDateChange(theaterId, screenName, 'startDate', e.target.value)}
+                          value={showtimes[theatreID]?.[screenName]?.startDate || ''}
+                          onChange={(e) => handleDateChange(theatreID, screenName, 'startDate', e.target.value)}
                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                         />
                       </div>
@@ -509,9 +509,9 @@ const ManageShowsPage = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">End Date:</label>
                         <input
                           type="date"
-                          value={showtimes[theaterId]?.[screenName]?.endDate || ''}
-                          onChange={(e) => handleDateChange(theaterId, screenName, 'endDate', e.target.value)}
-                          min={showtimes[theaterId]?.[screenName]?.startDate || ''}
+                          value={showtimes[theatreID]?.[screenName]?.endDate || ''}
+                          onChange={(e) => handleDateChange(theatreID, screenName, 'endDate', e.target.value)}
+                          min={showtimes[theatreID]?.[screenName]?.startDate || ''}
                           className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                         />
                       </div>
@@ -520,16 +520,16 @@ const ManageShowsPage = () => {
                       <label className="inline-flex items-center">
                         <input
                           type="checkbox"
-                          checked={separateTicketPrices[theaterId]?.[screenName] || false}
-                          onChange={() => handleSeparateTicketPricesChange(theaterId, screenName)}
+                          checked={separateTicketPrices[theatreID]?.[screenName] || false}
+                          onChange={() => handleSeparateTicketPricesChange(theatreID, screenName)}
                           className="form-checkbox h-5 w-5 text-indigo-600"
                         />
                         <span className="ml-2 text-gray-700">Separate ticket prices for each day</span>
                       </label>
                     </div>
-                    {separateTicketPrices[theaterId]?.[screenName] ? (
+                    {separateTicketPrices[theatreID]?.[screenName] ? (
                       <div>
-                        {showtimes[theaterId]?.[screenName]?.dailyShowtimes?.map((day, dateIndex) => (
+                        {showtimes[theatreID]?.[screenName]?.dailyShowtimes?.map((day, dateIndex) => (
                           <div key={day.date} className="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50">
                             <h5 className="text-md font-medium text-gray-800 mb-2">{day.date}</h5>
                             {day.showtimes?.map((showtime, showtimeIndex) => (
@@ -538,12 +538,12 @@ const ManageShowsPage = () => {
                                   <input
                                     type="time"
                                     value={showtime.time}
-                                    onChange={(e) => handleShowtimeChange(theaterId, screenName, dateIndex, showtimeIndex, 'time', e.target.value)}
+                                    onChange={(e) => handleShowtimeChange(theatreID, screenName, dateIndex, showtimeIndex, 'time', e.target.value)}
                                     className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                   />
                                   <button
                                     type="button"
-                                    onClick={() => removeShowtime(theaterId, screenName, dateIndex, showtimeIndex)}
+                                    onClick={() => removeShowtime(theatreID, screenName, dateIndex, showtimeIndex)}
                                     className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
                                   >
                                     <FaTrash />
@@ -557,7 +557,7 @@ const ManageShowsPage = () => {
                                       <input
                                         type="number"
                                         value={showtime.ticketPrices[seatType]}
-                                        onChange={(e) => handleTicketPriceChange(theaterId, screenName, dateIndex, showtimeIndex, seatType, e.target.value)}
+                                        onChange={(e) => handleTicketPriceChange(theatreID, screenName, dateIndex, showtimeIndex, seatType, e.target.value)}
                                         className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                         placeholder="Price"
                                       />
@@ -568,7 +568,7 @@ const ManageShowsPage = () => {
                             ))}
                             <button
                               type="button"
-                              onClick={() => addShowtime(theaterId, screenName, dateIndex)}
+                              onClick={() => addShowtime(theatreID, screenName, dateIndex)}
                               className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
                             >
                               <FaPlus className="mr-2" /> Add Showtime
@@ -578,18 +578,18 @@ const ManageShowsPage = () => {
                       </div>
                     ) : (
                       <div>
-                        {showtimes[theaterId]?.[screenName]?.showtimes?.map((showtime, index) => (
+                        {showtimes[theatreID]?.[screenName]?.showtimes?.map((showtime, index) => (
                           <div key={index} className="mb-4 p-4 border border-gray-200 rounded-md bg-white">
                             <div className="flex items-center space-x-2 mb-2">
                               <input
                                 type="time"
                                 value={showtime.time}
-                                onChange={(e) => handleShowtimeChange(theaterId, screenName, null, index, 'time', e.target.value)}
+                                onChange={(e) => handleShowtimeChange(theatreID, screenName, null, index, 'time', e.target.value)}
                                 className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                               />
                               <button
                                 type="button"
-                                onClick={() => removeShowtime(theaterId, screenName, null, index)}
+                                onClick={() => removeShowtime(theatreID, screenName, null, index)}
                                 className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
                               >
                                 <FaTrash />
@@ -603,7 +603,7 @@ const ManageShowsPage = () => {
                                   <input
                                     type="number"
                                     value={showtime.ticketPrices[seatType]}
-                                    onChange={(e) => handleTicketPriceChange(theaterId, screenName, null, index, seatType, e.target.value)}
+                                    onChange={(e) => handleTicketPriceChange(theatreID, screenName, null, index, seatType, e.target.value)}
                                     className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                     placeholder="Price"
                                   />
@@ -614,7 +614,7 @@ const ManageShowsPage = () => {
                         ))}
                         <button
                           type="button"
-                          onClick={() => addShowtime(theaterId, screenName)}
+                          onClick={() => addShowtime(theatreID, screenName)}
                           className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
                         >
                           <FaPlus className="mr-2" /> Add Showtime
@@ -726,7 +726,7 @@ const ManageShowsPage = () => {
                 {filteredShows.map((show) => (
                   <tr key={show.id} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-2">{movies.find((m) => m.id === show.movieId)?.title}</td>
-                    <td className="px-4 py-2">{theaters.find((t) => t.id === show.theaterId)?.["theatre-name"]}</td>
+                    <td className="px-4 py-2">{theaters.find((t) => t.id === show.theatreID)?.["theatre-name"]}</td>
                     <td className="px-4 py-2">{show.screenName}</td>
                     <td className="px-4 py-2">{show.datetime.toDate().toLocaleString()}</td>
                     <td className="px-4 py-2">

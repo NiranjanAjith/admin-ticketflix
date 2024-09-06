@@ -68,32 +68,20 @@ const Header = () => {
                       <FaHome className="mr-1" /> Dashboard
                     </Link>
                   </li>
-                  {place === routes.MANAGE_THEATRES ? (
-                    <li>
-                      <Link to={routes.ADD_THEATRE} className={navLinkStyle}>
-                        <FaPlus className="mr-1" /> Add Theater
-                      </Link>
-                    </li>
-                  ) : (
+                  {
                     <li>
                       <Link to={routes.MANAGE_THEATRES} className={navLinkStyle}>
                         <FaTheaterMasks className="mr-1" /> Theaters
                       </Link>
                     </li>
-                  )}
-                  {place === routes.MANAGE_MOVIES ? (
-                    <li>
-                      <Link to={routes.ADD_MOVIE} className={navLinkStyle}>
-                        <FaPlus className="mr-1" /> Add Movie
-                      </Link>
-                    </li>
-                  ) : (
+                  }
+                  {
                     <li>
                       <Link to={routes.MANAGE_MOVIES} className={navLinkStyle}>
                         <FaFilm className="mr-1" /> Movies
                       </Link>
                     </li>
-                  )}
+                }
                   <li>
                     <Link to={routes.MANAGE_EXECS} className={navLinkStyle}>
                       <FaUserTie className="mr-1" /> Executives

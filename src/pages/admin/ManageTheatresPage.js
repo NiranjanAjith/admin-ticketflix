@@ -32,7 +32,7 @@ const keralaCities = {
   "Wayanad": ["Kalpetta", "Mananthavady", "Sulthan Bathery"]
 };
 
-const seatTypes = ['standard', 'elite', 'premium'];
+const seatTypes = ['Standard', 'Gold', 'Diamond'];
 
 const ManageTheatresPage = () => {
     const [theaters, setTheaters] = useState([]);
