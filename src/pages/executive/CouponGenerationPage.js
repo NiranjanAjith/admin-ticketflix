@@ -213,7 +213,6 @@ function CouponGeneration() {
             executiveCode: executiveCode,
             createdAt: new Date(),
             generated_date: serverTimestamp(),
-            is_sold: false,
             is_redeemed: false,
             sale_date: null,
             validity: new Date(Date.now() + 2592000000), // 30 days from now
