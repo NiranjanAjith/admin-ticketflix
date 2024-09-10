@@ -18,30 +18,40 @@ const AdminLogin = () => {
     if (user) navigate(routes.ADMIN_DASHBOARD);
   }, [user, navigate]);
 
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+  
       // Check if the user is an admin
       const adminRef = collection(firestore, 'admins');
       const q = query(adminRef, where('email', '==', user.email));
       const querySnapshot = await getDocs(q);
-
+  
       if (querySnapshot.empty) {
         throw new Error('Invalid admin credentials');
       }
-
+  
       // If we get here, the user is an admin
       navigate(routes.ADMIN_DASHBOARD);
     } catch (error) {
-      setError(error.message);
+      // Check the error code for invalid password
+      if (error.code === 'auth/invalid-credential') {
+        setError('Invalid password. Please try again.');
+      } else if (error.code === 'auth/user-not-found') {
+        setError('No user found with this email.');
+      } else {
+        setError(error.message); // Default to the Firebase error message
+      }
+  
       // Sign out the user if they're not an admin
       await auth.signOut();
     }
   };
+  
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 to-black text-white">
