@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Header from "../components/Header";
 import Footer from '../components/Footer';
 import { db } from '../../firebase';
-import { collection, getDocs, query, where, addDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore'; //  getDocs, query, where,
 
 function PrebookingForm() {
     const location = useLocation();
@@ -15,12 +15,12 @@ function PrebookingForm() {
         phone: '',
         email: '',
         location: '',
-        firstPreference: '',
-        secondPreference: '',
-        thirdPreference: '',
+        firstPreference: "",
+        secondPreference: "",
+        thirdPreference: "",
         class: '',
         executiveCode: '',
-        numberOfSeats: '1'
+        numberOfSeats: 1
     });
 
     const [movieData, setMovieData] = useState(null);
@@ -29,9 +29,9 @@ function PrebookingForm() {
     const [locations, setLocations] = useState([]);
     const [seatTypes, setSeatTypes] = useState([]);
     const [amount, setAmount] = useState(null);
-    const [firstPreferenceCount, setFirstPreferenceCount] = useState({});
-    const [secondPreferenceCount, setSecondPreferenceCount] = useState({});
-    const [thirdPreferenceCount, setThirdPreferenceCount] = useState({});
+    // const [firstPreferenceCount, setFirstPreferenceCount] = useState({});
+    // const [secondPreferenceCount, setSecondPreferenceCount] = useState({});
+    // const [thirdPreferenceCount, setThirdPreferenceCount] = useState({});
 
     useEffect(() => {
         const fetchMovieAndTheatres = async () => {
@@ -98,25 +98,6 @@ function PrebookingForm() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-
-        const numberOfSeats = parseInt(formData.numberOfSeats, 10);
-
-        if (name === 'firstPreference') {
-            setFirstPreferenceCount(prev => ({
-                ...prev,
-                [value]: (prev[value] || 0) + numberOfSeats
-            }));
-        } else if (name === 'secondPreference') {
-            setSecondPreferenceCount(prev => ({
-                ...prev,
-                [value]: (prev[value] || 0) + numberOfSeats
-            }));
-        } else if (name === 'thirdPreference') {
-            setThirdPreferenceCount(prev => ({
-                ...prev,
-                [value]: (prev[value] || 0) + numberOfSeats
-            }));
-        }
     };
 
     const getAvailableTheatres = (preference) => {
@@ -124,22 +105,18 @@ function PrebookingForm() {
             if (preference === 'firstPreference') return true;
             if (preference === 'secondPreference') return theatre.id !== formData.firstPreference;
             if (preference === 'thirdPreference') return theatre.id !== formData.firstPreference && theatre.id !== formData.secondPreference;
+            return false;
         });
     };
 
     const handleSubmit = async (e) => {
-        const numberOfSeats = parseInt(formData.numberOfSeats, 10);
+        // ?? const numberOfSeats = parseInt(formData.numberOfSeats, 10);
         e.preventDefault();
         try {
             const prebookData = {
                 ...formData,
                 movieId,
                 amount,
-                preferenceCount: {
-                    first: numberOfSeats,
-                    second: numberOfSeats,
-                    third: numberOfSeats
-                },
                 timestamp: new Date()
             };
             const prebookCol = collection(db, 'prebook');
