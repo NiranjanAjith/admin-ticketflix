@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { collection, addDoc, Timestamp, getDocs } from 'firebase/firestore';
 import { firestore, storage } from '../../firebase';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -18,23 +18,56 @@ const AddMoviePage = () => {
         director: '',
         language: '',
         ageRating: '',
+        prebook: false,
         prebookPrice: {
             regular: '',
             gold: '',
             diamond: ''
         },
-        theatreList: {},
+        theatreIds: [],
     });
     const [poster, setPoster] = useState(null);
+    const [additionalImages, setAdditionalImages] = useState([]);
     const [message, setMessage] = useState({ type: '', content: '' });
-    const [theatreInput, setTheatreInput] = useState('');
+    const [theatres, setTheatres] = useState([]);
+    const [selectedTheatres, setSelectedTheatres] = useState([]);
+    const [cities, setCities] = useState([]);
+    const [selectedCity, setSelectedCity] = useState('');
+
+    useEffect(() => {
+        fetchTheatres();
+    }, []);
+
+    const fetchTheatres = async () => {
+        try {
+            const theatresCollection = collection(firestore, 'theatres');
+            const theatreSnapshot = await getDocs(theatresCollection);
+            const theatreList = theatreSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setTheatres(theatreList);
+
+            // Extract unique cities
+            const uniqueCities = [...new Set(theatreList.map(theatre => theatre.city))];
+            setCities(uniqueCities);
+        } catch (error) {
+            console.error('Error fetching theatres: ', error);
+            setMessage({ type: 'error', content: `Error fetching theatres: ${error.message}` });
+        }
+    };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target;
         if (name === 'genre' || name === 'cast') {
             setMovie(prevState => ({
                 ...prevState,
                 [name]: value.split(',').map(item => item.trim())
+            }));
+        } else if (type === 'checkbox') {
+            setMovie(prevState => ({
+                ...prevState,
+                [name]: checked
             }));
         } else {
             const [priceCategory, fieldName] = name.split('.');
@@ -56,28 +89,26 @@ const AddMoviePage = () => {
     };
 
     const handleTheatreChange = (e) => {
-        setTheatreInput(e.target.value);
+        const theatreId = e.target.value;
+        setSelectedTheatres(prevSelected => {
+            if (prevSelected.includes(theatreId)) {
+                return prevSelected.filter(id => id !== theatreId);
+            } else {
+                return [...prevSelected, theatreId];
+            }
+        });
     };
 
-    const handleTheatreSubmit = (e) => {
-        e.preventDefault();
-        const theatres = theatreInput.split(',').map(theatre => theatre.trim());
-        const theatreList = {};
-        theatres.forEach(theatre => {
-            theatreList[theatre] = 0;
-        });
-        setMovie(prevState => ({
-            ...prevState,
-            theatreList: {
-                ...prevState.theatreList,
-                ...theatreList
-            }
-        }));
-        setTheatreInput('');
+    const handleCityChange = (e) => {
+        setSelectedCity(e.target.value);
     };
 
     const handlePosterChange = (e) => {
         setPoster(e.target.files[0]);
+    };
+
+    const handleAdditionalImagesChange = (e) => {
+        setAdditionalImages([...e.target.files]);
     };
 
     const handleSubmit = async (e) => {
@@ -112,11 +143,21 @@ const AddMoviePage = () => {
             await uploadBytes(storageRef, poster);
             const posterUrl = await getDownloadURL(storageRef);
 
+            const additionalImageUrls = await Promise.all(
+                additionalImages.map(async (image, index) => {
+                    const imageRef = ref(storage, `movie_images/${movie.title}_${Date.now()}_${index}`);
+                    await uploadBytes(imageRef, image);
+                    return getDownloadURL(imageRef);
+                })
+            );
+
             const movieData = {
                 ...movie,
                 posterUrl,
+                additionalImageUrls,
                 releaseDate: Timestamp.fromDate(releaseDate),
                 showEndDate: Timestamp.fromDate(showEndDate),
+                theatreIds: selectedTheatres,
             };
 
             await addDoc(collection(firestore, 'movies'), movieData);
@@ -135,15 +176,20 @@ const AddMoviePage = () => {
                 director: '',
                 language: '',
                 ageRating: '',
+                prebook: false,
                 prebookPrice: {
                     regular: '',
                     gold: '',
                     diamond: ''
                 },
-                theatreList: {},
+                theatreIds: [],
             });
             setPoster(null);
+            setAdditionalImages([]);
+            setSelectedTheatres([]);
+            setSelectedCity('');
             document.getElementById('poster').value = '';
+            document.getElementById('additionalImages').value = '';
         } catch (error) {
             console.error('Error adding movie: ', error);
             setMessage({ type: 'error', content: `Error adding movie: ${error.message}` });
@@ -206,57 +252,103 @@ const AddMoviePage = () => {
                             <label htmlFor="ageRating" className="block text-sm font-medium text-gray-700">Age Rating:</label>
                             <input type="text" id="ageRating" name="ageRating" value={movie.ageRating} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Prebook Price:</label>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label htmlFor="prebookPrice.regular" className="block text-sm font-medium text-gray-700">Regular:</label>
-                                    <input type="number" id="prebookPrice.regular" name="prebookPrice.regular" value={movie.prebookPrice.regular} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
-                                </div>
-                                <div>
-                                    <label htmlFor="prebookPrice.gold" className="block text-sm font-medium text-gray-700">Gold:</label>
-                                    <input type="number" id="prebookPrice.gold" name="prebookPrice.gold" value={movie.prebookPrice.gold} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
-                                </div>
-                                <div>
-                                    <label htmlFor="prebookPrice.diamond" className="block text-sm font-medium text-gray-700">Diamond:</label>
-                                    <input type="number" id="prebookPrice.diamond" name="prebookPrice.diamond" value={movie.prebookPrice.diamond} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                id="prebook"
+                                name="prebook"
+                                checked={movie.prebook}
+                                onChange={handleChange}
+                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="prebook" className="ml-2 block text-sm text-gray-900">
+                                Enable Prebook
+                            </label>
+                        </div>
+                        {movie.prebook && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Prebook Price:</label>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label htmlFor="prebookPrice.regular" className="block text-sm font-medium text-gray-700">Regular:</label>
+                                        <input type="number" id="prebookPrice.regular" name="prebookPrice.regular" value={movie.prebookPrice.regular} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="prebookPrice.gold" className="block text-sm font-medium text-gray-700">Gold:</label>
+                                        <input type="number" id="prebookPrice.gold" name="prebookPrice.gold" value={movie.prebookPrice.gold} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="prebookPrice.diamond" className="block text-sm font-medium text-gray-700">Diamond:</label>
+                                        <input type="number" id="prebookPrice.diamond" name="prebookPrice.diamond" value={movie.prebookPrice.diamond} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                         <div>
-                            <label htmlFor="theatres" className="block text-sm font-medium text-gray-700">Theatres:</label>
-                            <div className="flex">
-                                <input
-                                    type="text"
-                                    id="theatres"
-                                    value={theatreInput}
-                                    onChange={handleTheatreChange}
-                                    placeholder="comma separated, 'theatre_name location' format"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleTheatreSubmit}
-                                    className="ml-2 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            <label className="block text-sm font-medium text-gray-700">Theatres:</label>
+                            <div className="mt-2 mb-4">
+                                <label htmlFor="city" className="block text-sm font-medium text-gray-700">Filter by City:</label>
+                                <select
+                                    id="city"
+                                    name="city"
+                                    value={selectedCity}
+                                    onChange={handleCityChange}
+                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                                 >
-                                    Add Theatres
-                                </button>
+                                    <option value="">All Cities</option>
+                                    {cities.map(city => (
+                                        <option key={city} value={city}>{city}</option>
+                                    ))}
+                                </select>
                             </div>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-medium text-gray-700">Added Theatres:</h3>
-                            <ul className="mt-1 list-disc list-inside">
-                                {Object.keys(movie.theatreList).map((theatre, index) => (
-                                    <li key={index}>{theatre}</li>
-                                ))}
-                            </ul>
+                            <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+                                {theatres
+                                    .filter(theatre => !selectedCity || theatre.city === selectedCity)
+                                    .map(theatre => (
+                                        <div key={theatre.id} className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                id={`theatre-${theatre.id}`}
+                                                value={theatre.id}
+                                                checked={selectedTheatres.includes(theatre.id)}
+                                                onChange={handleTheatreChange}
+                                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                            />
+                                            <label htmlFor={`theatre-${theatre.id}`} className="ml-2 block text-sm text-gray-900">
+                                                {theatre['theatre-name']} ({theatre.city})
+                                            </label>
+                                        </div>
+                                    ))
+                                }
+                            </div>
                         </div>
                         <div>
                             <label htmlFor="poster" className="block text-sm font-medium text-gray-700">Poster:</label>
-                            <input type="file" id="poster" onChange={handlePosterChange} required className="mt-1 block w-full text-sm text-gray-900 bg-gray-50 rounded-md border border-gray-300 cursor-pointer focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                            <input 
+                                type="file" 
+                                id="poster" 
+                                onChange={handlePosterChange} 
+                                accept="image/*"
+                                required 
+                                className="mt-1 block w-full text-sm text-gray-900 bg-gray-50 rounded-md border border-gray-300 cursor-pointer focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" 
+                            />
                         </div>
                         <div>
-                            <button type="submit" className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <label htmlFor="additionalImages" className="block text-sm font-medium text-gray-700">Additional Images:</label>
+                            <input 
+                                type="file" 
+                                id="additionalImages" 
+                                onChange={handleAdditionalImagesChange} 
+                                multiple 
+                                accept="image/*"
+                                className="mt-1 block w-full text-sm text-gray-900 bg-gray-50 rounded-md border border-gray-300 cursor-pointer focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" 
+                            />
+                        </div>
+                        <div>
+                            <button 
+                                type="submit" 
+                                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
                                 Add Movie
                             </button>
                         </div>

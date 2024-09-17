@@ -113,17 +113,20 @@ const ExecutiveDashboard = () => {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 10;
-    const spacing = 5; // Add spacing between coupons
+    const spacing = 5;
     const ticketWidth = pageWidth - 2 * margin;
-    const ticketHeight = 75; // Slightly reduced height to accommodate spacing
+    const ticketHeight = 75;
     const ticketsPerPage = Math.floor((pageHeight - 2 * margin) / (ticketHeight + spacing));
   
-    for (let i = 0; i < coupons.length; i++) {
+    // Filter out coupons with non-null sale_date
+    const unsoldCoupons = coupons.filter(coupon => !coupon.sale_date);
+  
+    for (let i = 0; i < unsoldCoupons.length; i++) {
       if (i > 0 && i % ticketsPerPage === 0) {
         pdf.addPage();
       }
   
-      const coupon = coupons[i];
+      const coupon = unsoldCoupons[i];
       const element = couponRefs.current[coupon.id];
   
       if (element) {
@@ -193,9 +196,15 @@ const ExecutiveDashboard = () => {
                         />
                         <div className="flex justify-between items-center mt-2">
                           <span className="text-lg font-semibold text-gray-800">{coupon.coupon_code}</span>
-                          <span className={`px-2 py-1 rounded text-sm ${coupon.is_sold ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                            {coupon.is_sold ? 'Sold' : 'Unsold'}
-                          </span>
+                          {coupon.sale_date ? (
+                            <span className="px-2 py-1 rounded text-sm bg-green-100 text-green-800">
+                              Sold
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 rounded text-sm bg-yellow-100 text-yellow-800">
+                              Unsold
+                            </span>
+                          )}
                         </div>
                       </div>
                     </Link>

@@ -49,7 +49,7 @@ const ManageTheatresPage = () => {
 
     useEffect(() => {
         fetchTheaters();
-    });
+    }, []);
 
     useEffect(() => {
         if (editingTheater && editingTheater.district) {

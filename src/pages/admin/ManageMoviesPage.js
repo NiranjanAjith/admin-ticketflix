@@ -17,9 +17,10 @@ import Footer from "./components/Footer";
 const ManageMoviesPage = () => {
   const [movies, setMovies] = useState([]);
   const [editingMovie, setEditingMovie] = useState(null);
-  // const [isAdding, setIsAdding] = useState(false); // FIXME: ?? NOT USED IN THE PAGE
   const [poster, setPoster] = useState(null);
+  const [additionalImages, setAdditionalImages] = useState([]);
   const [message, setMessage] = useState({ type: "", content: "" });
+  const [theatreInput, setTheatreInput] = useState('');
 
   useEffect(() => {
     fetchMovies();
@@ -47,7 +48,7 @@ const ManageMoviesPage = () => {
 
   const handleEdit = (movie) => {
     setEditingMovie(movie);
-    // setIsAdding(false);
+    setTheatreInput('');
   };
 
   const handleUpdate = async (e) => {
@@ -65,9 +66,18 @@ const ManageMoviesPage = () => {
         posterUrl = await getDownloadURL(storageRef);
       }
 
+      const additionalImageUrls = await Promise.all(
+        additionalImages.map(async (image, index) => {
+          const imageRef = ref(storage, `movie_images/${editingMovie.title}_${Date.now()}_${index}`);
+          await uploadBytes(imageRef, image);
+          return getDownloadURL(imageRef);
+        })
+      );
+
       const movieData = {
         ...editingMovie,
         posterUrl,
+        additionalImageUrls,
         releaseDate: Timestamp.fromDate(new Date(editingMovie.releaseDate)),
         showEndDate: Timestamp.fromDate(new Date(editingMovie.showEndDate)),
       };
@@ -78,6 +88,7 @@ const ManageMoviesPage = () => {
       setMessage({ type: "success", content: "Movie updated successfully!" });
       setEditingMovie(null);
       setPoster(null);
+      setAdditionalImages([]);
       fetchMovies();
     } catch (error) {
       console.error("Error updating movie: ", error);
@@ -106,22 +117,63 @@ const ManageMoviesPage = () => {
 
   const handleEditChange = (e) => {
     if (!editingMovie) return;
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     if (name === "genre" || name === "cast") {
       setEditingMovie((prev) => ({
         ...prev,
         [name]: value.split(",").map((item) => item.trim()),
       }));
-    } else {
+    } else if (type === "checkbox") {
       setEditingMovie((prev) => ({
         ...prev,
-        [name]: name === "duration" ? parseFloat(value) : value,
+        [name]: checked,
       }));
+    } else {
+      const [priceCategory, fieldName] = name.split('.');
+      if (fieldName) {
+        setEditingMovie((prev) => ({
+          ...prev,
+          [priceCategory]: {
+            ...prev[priceCategory],
+            [fieldName]: parseFloat(value),
+          },
+        }));
+      } else {
+        setEditingMovie((prev) => ({
+          ...prev,
+          [name]: name === "duration" ? parseFloat(value) : value,
+        }));
+      }
     }
   };
 
   const handlePosterChange = (e) => {
     setPoster(e.target.files[0]);
+  };
+
+  const handleAdditionalImagesChange = (e) => {
+    setAdditionalImages([...e.target.files]);
+  };
+
+  const handleTheatreChange = (e) => {
+    setTheatreInput(e.target.value);
+  };
+
+  const handleTheatreSubmit = (e) => {
+    e.preventDefault();
+    const theatres = theatreInput.split(',').map(theatre => theatre.trim());
+    const theatreList = {};
+    theatres.forEach(theatre => {
+      theatreList[theatre] = 0;
+    });
+    setEditingMovie(prevState => ({
+      ...prevState,
+      theatreList: {
+        ...prevState.theatreList,
+        ...theatreList
+      }
+    }));
+    setTheatreInput('');
   };
 
   return (
@@ -263,17 +315,17 @@ const ManageMoviesPage = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
                   <input
-                    name="director"
-                    value={editingMovie.director || ""}
-                    onChange={handleEditChange}
-                    placeholder="Director"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  <input
                     name="cast"
                     value={editingMovie.cast?.join(", ") || ""}
                     onChange={handleEditChange}
                     placeholder="Cast (comma-separated)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    name="director"
+                    value={editingMovie.director || ""}
+                    onChange={handleEditChange}
+                    placeholder="Director"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
                   <input
@@ -290,11 +342,89 @@ const ManageMoviesPage = () => {
                     placeholder="Age Rating"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="prebook"
+                      name="prebook"
+                      checked={editingMovie.prebook}
+                      onChange={handleEditChange}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="prebook" className="ml-2 block text-sm text-gray-900">
+                      Enable Prebook
+                    </label>
+                  </div>
+                  {editingMovie.prebook && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Prebook Price:</label>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label htmlFor="prebookPrice.regular" className="block text-sm font-medium text-gray-700">Regular:</label>
+                          <input
+                            type="number"
+                            id="prebookPrice.regular"
+                            name="prebookPrice.regular"
+                            value={editingMovie.prebookPrice?.regular || ""}
+                            onChange={handleEditChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="prebookPrice.gold" className="block text-sm font-medium text-gray-700">Gold:</label>
+                          <input
+                            type="number"
+                            id="prebookPrice.gold"
+                            name="prebookPrice.gold"
+                            value={editingMovie.prebookPrice?.gold || ""}
+                            onChange={handleEditChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="prebookPrice.diamond" className="block text-sm font-medium text-gray-700">Diamond:</label>
+                          <input
+                            type="number"
+                            id="prebookPrice.diamond"
+                            name="prebookPrice.diamond"
+                            value={editingMovie.prebookPrice?.diamond || ""}
+                            onChange={handleEditChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div>
-                    <label
-                      htmlFor="poster"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
+                    <label htmlFor="theatres" className="block text-sm font-medium text-gray-700">Theatres:</label>
+                    <div className="flex">
+                      <input
+                        type="text"
+                        id="theatres"
+                        value={theatreInput}
+                        onChange={handleTheatreChange}
+                        placeholder="comma separated, 'theatre_name location' format"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleTheatreSubmit}
+                        className="ml-2 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        Add Theatres
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700">Added Theatres:</h3>
+                    <ul className="mt-1 list-disc list-inside">
+                      {Object.keys(editingMovie.theatreList || {}).map((theatre, index) => (
+                        <li key={index}>{theatre}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <label htmlFor="poster" className="block text-sm font-medium text-gray-700">
                       Poster:
                     </label>
                     <input
@@ -302,7 +432,22 @@ const ManageMoviesPage = () => {
                       id="poster"
                       name="poster"
                       onChange={handlePosterChange}
-                      className="block w-full text-sm text-gray-500
+                      className="mt-1 block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-md file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-indigo-50 file:text-indigo-700
+                          hover:file:bg-indigo-100"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="additionalImages" className="block text-sm font-medium text-gray-700">Additional Images:</label>
+                    <input
+                      type="file"
+                      id="additionalImages"
+                      onChange={handleAdditionalImagesChange}
+                      multiple
+                      className="mt-1 block w-full text-sm text-gray-500
                           file:mr-4 file:py-2 file:px-4
                           file:rounded-md file:border-0
                           file:text-sm file:font-semibold

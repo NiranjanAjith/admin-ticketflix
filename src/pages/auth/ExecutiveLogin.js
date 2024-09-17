@@ -22,28 +22,36 @@ const ExecutiveLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setError(null); // Clear previous error
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+  
       // Check if the user is an executive
       const executiveRef = collection(firestore, 'executives');
       const q = query(executiveRef, where('email', '==', user.email));
       const querySnapshot = await getDocs(q);
-
+  
       if (querySnapshot.empty) {
         throw new Error('Invalid executive credentials');
       }
-
+  
       // If we get here, the user is an executive
       navigate(routes.EXEC_DASHBOARD);
     } catch (error) {
-      setError(error.message);
+      if (error.code === 'auth/invalid-credential') {
+        setError("Username or Password Incorrect. Please try again.");
+      } else if (error.code === 'auth/user-not-found') {
+        setError("No user found with this email.");
+      } else {
+        setError(error.message);
+      }
+  
       // Sign out the user if they're not an executive
       await auth.signOut();
     }
   };
+  
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 to-black text-white">
