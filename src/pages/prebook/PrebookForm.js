@@ -4,6 +4,7 @@ import { db } from '../../firebase';
 import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+
 const PrebookingForm = () => {
   const location = useLocation();
   const movieId = location.state?.movieId || '';
@@ -118,7 +119,7 @@ const PrebookingForm = () => {
       };
       
       const prebookCol = collection(db, 'prebook');
-      await addDoc(prebookCol, prebookData);
+      const docRef = await addDoc(prebookCol, prebookData);
       console.log("Prebooking data written to Firestore");
   
       const movieRef = doc(db, 'movies', movieId);
@@ -149,7 +150,14 @@ const PrebookingForm = () => {
   
         console.log("Movie document updated with new seat counts");
   
-        navigate('/payment');
+        // Navigate to the checkout page with prebooking data
+        navigate('/checkout', { 
+          state: { 
+            prebookingId: docRef.id,
+            movieName: movieData.title,
+            ...prebookData
+          } 
+        });
       } else {
         console.error("Movie document not found");
       }
@@ -160,7 +168,7 @@ const PrebookingForm = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-yellow-100 to-yellow-300">
-        <Header/>
+      <Header />
       <main className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
         <div className="w-full max-w-md">
           <form onSubmit={handleSubmit} className="bg-white shadow-2xl rounded-lg px-8 pt-6 pb-8 mb-4 space-y-6">
@@ -314,7 +322,7 @@ const PrebookingForm = () => {
           </form>
         </div>
       </main>
-      <Footer/>
+      <Footer />
     </div>
   );
 };
