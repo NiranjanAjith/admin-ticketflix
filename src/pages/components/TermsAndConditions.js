@@ -85,10 +85,7 @@ const TermsAndConditions = () => {
             <p>We may update these Terms and Conditions from time to time. Any changes will be posted on this page, and your continued use of the TicketFlix app following these changes will constitute your acceptance of the revised terms.</p>
           </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-2">16. Contact Us</h2>
-            <p>If you have any questions or concerns regarding these terms, feel free to reach out to us at support@ticketflix.com.</p>
-          </section>
+          
         </div>
 
         <div className="mt-12 text-center">
