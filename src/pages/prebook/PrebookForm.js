@@ -227,7 +227,7 @@ const PrebookingForm = () => {
                   <option value="">{`${index + 1}${index === 0 ? 'st' : index === 1 ? 'nd' : 'rd'} Preference`}</option>
                   {getAvailableTheatres(preference).map((theatre) => (
                     <option key={theatre.id} value={theatre.id}>
-                      {theatre.owner}
+                      {theatre['theatre-name']}
                     </option>
                   ))}
                 </select>

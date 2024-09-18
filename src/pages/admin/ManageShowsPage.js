@@ -10,9 +10,10 @@ import {
   where,
   Timestamp,
   updateDoc,
+  getDoc,
 } from "firebase/firestore";
 import { firestore } from "../../firebase";
-import { FaTrash, FaPlus, FaChair, FaEdit } from "react-icons/fa";
+import { FaChair, FaEdit,FaTrash,FaPlus } from "react-icons/fa";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
@@ -34,6 +35,11 @@ const ManageShowsPage = () => {
   });
   const [editingShow, setEditingShow] = useState(null);
   const [separateTicketPrices, setSeparateTicketPrices] = useState({});
+  const [cancellingShow, setCancellingShow] = useState(null);
+
+  const handleCancelShow = (show) => {
+    setCancellingShow(show);
+  };
 
   const fetchMovies = useCallback(async () => {
     const moviesCollection = collection(firestore, "movies");
@@ -44,6 +50,56 @@ const ManageShowsPage = () => {
     }));
     setMovies(movieList);
   }, []);
+
+  const processCancellation = async (showId) => {
+    try {
+      // 1. Get all tickets for this show
+      const ticketsRef = collection(firestore, "tickets");
+      const ticketQuery = query(ticketsRef, where("show-id", "==", showId));
+      const ticketSnapshot = await getDocs(ticketQuery);
+
+      // 2. Process refunds for each ticket
+      for (const ticketDoc of ticketSnapshot.docs) {
+        const ticketData = ticketDoc.data();
+        await processRefund(ticketData);
+      }
+
+      // 3. Delete the show
+      await deleteDoc(doc(firestore, "shows", showId));
+
+      // 4. Update the shows list
+      setShows(shows.filter((show) => show.id !== showId));
+
+      setMessage({ type: "success", content: "Show cancelled and refunds processed successfully!" });
+    } catch (error) {
+      console.error("Error cancelling show: ", error);
+      setMessage({ type: "error", content: `Error cancelling show: ${error.message}` });
+    }
+    setCancellingShow(null);
+  };
+
+  const processRefund = async (ticketData) => {
+    const userId = ticketData["user-id"];
+    const amountPaid = parseFloat(ticketData["amount-paid"]);
+
+    // Get the user document
+    const userRef = doc(firestore, "Users", userId);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const currentCredits = userData.credits || 0;
+      const newCredits = currentCredits + amountPaid;
+
+      // Update user's credits
+      await updateDoc(userRef, { credits: newCredits });
+
+      // Delete the ticket
+      await deleteDoc(doc(firestore, "tickets", ticketData["ticket-id"]));
+    } else {
+      console.error(`User document not found for ID: ${userId}`);
+    }
+  };
 
   const fetchTheaters = useCallback(async () => {
     const theatersCollection = collection(firestore, "theatres");
@@ -750,10 +806,10 @@ const ManageShowsPage = () => {
                         <FaEdit />
                       </button>
                       <button
-                        onClick={() => handleDeleteShow(show.id)}
-                        className="text-red-600 hover:text-red-800"
+                        onClick={() => handleCancelShow(show)}
+                        className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
                       >
-                        <FaTrash />
+                        Cancel
                       </button>
                     </td>
                   </tr>
@@ -782,6 +838,41 @@ const ManageShowsPage = () => {
           onSave={handleUpdateShow}
         />
       )}
+
+      {/* Cancel Show Modal */}
+      {cancellingShow && (
+        <CancelShowModal
+          show={cancellingShow}
+          onClose={() => setCancellingShow(null)}
+          onConfirm={processCancellation}
+        />
+      )}
+    </div>
+  );
+};
+
+const CancelShowModal = ({ show, onClose, onConfirm }) => {
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Cancel Show</h3>
+        <p className="mb-4">Are you sure you want to cancel this show? This action cannot be undone.</p>
+        <p className="mb-4">All tickets will be refunded as credits to the users' accounts.</p>
+        <div className="mt-4 flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            No, Keep Show
+          </button>
+          <button
+            onClick={() => onConfirm(show.id)}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            Yes, Cancel Show
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -860,6 +951,8 @@ const EditShowModal = ({ show, onClose, onSave }) => {
       },
     }));
   };
+
+  
 
   const handleSave = (e) => {
     e.preventDefault();

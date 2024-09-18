@@ -39,7 +39,7 @@ const Checkout = () => {
           const theatreRef = doc(db, 'theatres', data[pref]);
           const theatreSnap = await getDoc(theatreRef);
           if (theatreSnap.exists()) {
-            names[pref] = theatreSnap.data().owner;
+            names[pref] = theatreSnap.data()['theatre-name'];
           }
         } catch (err) {
           console.error(`Error fetching theatre name for ${pref}:`, err);
