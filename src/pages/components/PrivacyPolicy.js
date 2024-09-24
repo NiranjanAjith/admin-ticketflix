@@ -1,34 +1,47 @@
 import React from 'react';
-import Header from "./Header";
+import { Link } from 'react-router-dom';
+import Header from './Header';
 import Footer from './Footer';
 
-function PrivacyPolicy() {
-    return (
-        <div className="App min-h-screen flex flex-col bg-yellow-50">
-            <Header />
-            <main className="flex-grow flex items-start pl-48 pt-12">
-                <div className="w-full max-w-3xl">
-                    <h2 className="text-3xl font-bold mb-6">Privacy Policy</h2>
-                    <div className="space-y-6">
-                        <section>
-                            <h3 className="text-xl font-semibold mb-2">1. Information We Collect</h3>
-                            <p>We collect information you provide directly to us, such as when you create an account, make a purchase, or contact us for support.</p>
-                        </section>
-                        <section>
-                            <h3 className="text-xl font-semibold mb-2">2. How We Use Your Information</h3>
-                            <p>We use the information we collect to provide, maintain, and improve our services, to process your transactions, and to communicate with you.</p>
-                        </section>
-                        <section>
-                            <h3 className="text-xl font-semibold mb-2">3. Information Sharing and Disclosure</h3>
-                            <p>We do not share your personal information with third parties except as described in this privacy policy.</p>
-                        </section>
-                        {/* Add more sections as needed */}
-                    </div>
-                </div>
-            </main>
-            <Footer />
+const PrivacyPolicy = () => {
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">Privacy Policy</h1>
+        <div className="space-y-6">
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">1. Information We Collect</h2>
+            <p>We gather personal details such as your name, email address, and payment information when you register an account or make a purchase on our platform.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">2. How Your Information is Used</h2>
+            <p>Your information is used to complete transactions, provide customer service, and enhance our offerings. We may also use it to send updates or promotional materials regarding our services.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">3. Data Protection and Security</h2>
+            <p>We employ strong security measures to safeguard your personal data from unauthorized access, misuse, loss, or destruction, ensuring its integrity and confidentiality.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">4. Your Data Rights</h2>
+            <p>You hold the right to access, modify, or delete your personal information. You may also exercise control over how your data is processed by limiting or objecting to specific processing activities.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">5. Policy Updates</h2>
+            <p>Our privacy policy may change from time to time. Any modifications will be posted on this page, and we encourage you to review it periodically to stay informed of updates.</p>
+          </section>
         </div>
-    );
-}
+        <div className="mt-8 text-center">
+          <Link to="/" className="text-blue-600 hover:text-blue-800">Back to Home</Link>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+};
 
 export default PrivacyPolicy;
