@@ -162,28 +162,35 @@ const ManageShowsPage = () => {
   };
 
   const addShowtime = (theatreID, screenName, dateIndex = null) => {
+    console.log('addShowtime triggered for:', theatreID, screenName, dateIndex);
     const theater = theaters.find(t => t.id === theatreID);
     const seatTypes = new Set();
+  
+    // Gather all seat types from the matrix
     Object.values(theater['seat-matrix-layout'][screenName].matrix).forEach(row => {
       seatTypes.add(row.type);
     });
-
+  
+    // Create a new showtime object with default values
     const newShowtime = {
       time: '',
-      ticketPrices: Array.from(seatTypes).reduce((acc, type) => ({...acc, [type]: ''}), {})
+      ticketPrices: Array.from(seatTypes).reduce((acc, type) => ({ ...acc, [type]: '' }), {})
     };
-
+  
+    // Update the showtimes state
     setShowtimes(prev => {
-      const updatedShowtimes = {...prev};
+      const updatedShowtimes = { ...prev };
+      console.log('Before Update:', showtimes);
+  
       if (!updatedShowtimes[theatreID]) {
         updatedShowtimes[theatreID] = {};
       }
       if (!updatedShowtimes[theatreID][screenName]) {
         updatedShowtimes[theatreID][screenName] = {};
       }
-
+  
       if (separateTicketPrices[theatreID]?.[screenName]) {
-        // If separate ticket prices are enabled
+        // Handling for separate ticket prices
         if (!updatedShowtimes[theatreID][screenName].dailyShowtimes) {
           updatedShowtimes[theatreID][screenName].dailyShowtimes = [];
         }
@@ -192,15 +199,17 @@ const ManageShowsPage = () => {
         }
         updatedShowtimes[theatreID][screenName].dailyShowtimes[dateIndex].showtimes.push(newShowtime);
       } else {
-        // If common ticket prices are used
+        // Handling for common ticket prices
         if (!updatedShowtimes[theatreID][screenName].showtimes) {
           updatedShowtimes[theatreID][screenName].showtimes = [];
         }
         updatedShowtimes[theatreID][screenName].showtimes.push(newShowtime);
       }
+      console.log('After Update:', updatedShowtimes);
       return updatedShowtimes;
     });
-  };
+    console.log('Add showTime complete')
+  };  
 
   const handleShowtimeChange = (theatreID, screenName, dateIndex, showtimeIndex, field, value) => {
     setShowtimes(prev => {
@@ -212,6 +221,7 @@ const ManageShowsPage = () => {
         // If common ticket prices are used
         updatedShowtimes[theatreID][screenName].showtimes[showtimeIndex][field] = value;
       }
+      console.log('handleShowtimeChange completed')
       return updatedShowtimes;
     });
   };
@@ -533,7 +543,7 @@ const ManageShowsPage = () => {
                           <div key={day.date} className="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50">
                             <h5 className="text-md font-medium text-gray-800 mb-2">{day.date}</h5>
                             {day.showtimes?.map((showtime, showtimeIndex) => (
-                              <div key={showtimeIndex} className="mb-4 p-4 border border-gray-200 rounded-md bg-white">
+                              <div key={`${dateIndex}-${showtimeIndex}`} className="mb-4 p-4 border border-gray-200 rounded-md bg-white">
                                 <div className="flex items-center space-x-2 mb-2">
                                   <input
                                     type="time"
@@ -579,7 +589,7 @@ const ManageShowsPage = () => {
                     ) : (
                       <div>
                         {showtimes[theatreID]?.[screenName]?.showtimes?.map((showtime, index) => (
-                          <div key={index} className="mb-4 p-4 border border-gray-200 rounded-md bg-white">
+                          <div key={`${theatreID}-${screenName}-${index}`} className="mb-4 p-4 border border-gray-200 rounded-md bg-white">
                             <div className="flex items-center space-x-2 mb-2">
                               <input
                                 type="time"

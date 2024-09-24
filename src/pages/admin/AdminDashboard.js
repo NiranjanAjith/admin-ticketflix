@@ -17,6 +17,65 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ city: 'all', movie: 'all', theatre: 'all' });
   const [selectedExecutive, setSelectedExecutive] = useState('all');
+  const [selectedTheatre, setSelectedTheatre] = useState('all');
+  const [selectedMovie, setSelectedMovie] = useState('all');
+  const [selectedLocation, setSelectedLocation] = useState('all');
+  const [preferenceData, setPreferenceData] = useState({
+    firstPreference: [],
+    secondPreference: [],
+    thirdPreference: []
+  });
+
+  const fetchPreferenceData = async () => {
+    try {
+      const moviesCol = collection(firestore, 'movies');
+      const moviesSnapshot = await getDocs(moviesCol);
+      const moviesData = moviesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const theatresCol = collection(firestore, 'theatres');
+      const theatresSnapshot = await getDocs(theatresCol);
+      const theatresData = theatresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const theatreNameMap = theatresData.reduce((acc, theatre) => {
+        acc[theatre.id] = theatre['theatre-name'];
+        return acc;
+      }, {});
+
+      const preferenceData = {
+        firstPreference: [],
+        secondPreference: [],
+        thirdPreference: []
+      };
+
+      moviesData.forEach(movie => {
+        ['firstPreference', 'secondPreference', 'thirdPreference'].forEach(pref => {
+          if (movie[pref]) {
+            Object.entries(movie[pref]).forEach(([theatreId, count]) => {
+              preferenceData[pref].push({
+                theatreName: theatreNameMap[theatreId] || 'Unknown',
+                count,
+                theatreId,
+                movieId: movie.id
+              });
+            });
+          }
+        });
+      });
+
+      Object.keys(preferenceData).forEach(pref => {
+        preferenceData[pref].sort((a, b) => b.count - a.count);
+      });
+
+      return preferenceData;
+    } catch (error) {
+      console.error("Error fetching preference data:", error);
+      return {
+        firstPreference: [],
+        secondPreference: [],
+        thirdPreference: []
+      };
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,6 +94,10 @@ const AdminDashboard = () => {
         setShows(showsData);
         setMovies(moviesData);
         setExecutives(executivesData);
+
+        const data = await fetchPreferenceData();
+        setPreferenceData(data);
+
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -52,6 +115,7 @@ const AdminDashboard = () => {
   const cityOptions = getFilterOptions(theatres, 'city');
   const movieOptions = getFilterOptions(movies, 'title');
   const theatreOptions = getFilterOptions(theatres, 'theatre-name');
+  const locationOptions = getFilterOptions(theatres, 'city'); // Assuming location is represented by city
   const executiveOptions = getFilterOptions(executives, 'name');
 
   const filteredUserTickets = userTickets.filter(ticket => 
@@ -80,6 +144,28 @@ const AdminDashboard = () => {
 
   const selectedExecutiveData = executives.find(exec => exec.name === selectedExecutive) || {};
 
+  const filteredPreferences = {
+    firstPreference: preferenceData.firstPreference.filter(item =>
+      (selectedMovie === 'all' || item.movieId === movies.find(m => m.title === selectedMovie)?.id) &&
+      (selectedTheatre === 'all' || item.theatreId === theatres.find(t => t['theatre-name'] === selectedTheatre)?.id) &&
+      (selectedLocation === 'all' || theatres.find(t => t.id === item.theatreId)?.city === selectedLocation)
+    ),
+    secondPreference: preferenceData.secondPreference.filter(item =>
+      (selectedMovie === 'all' || item.movieId === movies.find(m => m.title === selectedMovie)?.id) &&
+      (selectedTheatre === 'all' || item.theatreId === theatres.find(t => t['theatre-name'] === selectedTheatre)?.id) &&
+      (selectedLocation === 'all' || theatres.find(t => t.id === item.theatreId)?.city === selectedLocation)
+    ),
+    thirdPreference: preferenceData.thirdPreference.filter(item =>
+      (selectedMovie === 'all' || item.movieId === movies.find(m => m.title === selectedMovie)?.id) &&
+      (selectedTheatre === 'all' || item.theatreId === theatres.find(t => t['theatre-name'] === selectedTheatre)?.id) &&
+      (selectedLocation === 'all' || theatres.find(t => t.id === item.theatreId)?.city === selectedLocation)
+    )
+  };
+
+  filteredPreferences.firstPreference.sort((a, b) => b.count - a.count);
+  filteredPreferences.secondPreference.sort((a, b) => b.count - a.count);
+  filteredPreferences.thirdPreference.sort((a, b) => b.count - a.count);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -97,57 +183,76 @@ const AdminDashboard = () => {
         <section className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Sales Analytics</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {[
-              { id: 'cityFilter', label: 'Cities', options: cityOptions },
-              { id: 'movieFilter', label: 'Movie', options: movieOptions },
-              { id: 'theatreFilter', label: 'Theatre', options: theatreOptions },
-            ].map(filter => (
-              <div key={filter.id}>
-                <label htmlFor={filter.id} className="block text-sm font-medium text-gray-700 mb-1">Filter by {filter.label}</label>
-                <select
-                  id={filter.id}
-                  value={filters[filter.id.split('Filter')[0]]}
-                  onChange={(e) => setFilters({...filters, [filter.id.split('Filter')[0]]: e.target.value})}
-                  className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  {filter.options.map(option => (
-                    <option key={option} value={option}>{option === 'all' ? `All ${filter.label}` : option}</option>
-                  ))}
-                </select>
-              </div>
-            ))}
+            <div>
+              <label htmlFor="cityFilter" className="block text-sm font-medium text-gray-700 mb-1">Filter by City</label>
+              <select
+                id="cityFilter"
+                value={filters.city}
+                onChange={(e) => setFilters({...filters, city: e.target.value})}
+                className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {cityOptions.map(option => (
+                  <option key={option} value={option}>{option === 'all' ? 'All Cities' : option}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="movieFilter" className="block text-sm font-medium text-gray-700 mb-1">Filter by Movie</label>
+              <select
+                id="movieFilter"
+                value={filters.movie}
+                onChange={(e) => setFilters({...filters, movie: e.target.value})}
+                className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {movieOptions.map(option => (
+                  <option key={option} value={option}>{option === 'all' ? 'All Movies' : option}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="theatreFilter" className="block text-sm font-medium text-gray-700 mb-1">Filter by Theatre</label>
+              <select
+                id="theatreFilter"
+                value={filters.theatre}
+                onChange={(e) => setFilters({...filters, theatre: e.target.value})}
+                className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {theatreOptions.map(option => (
+                  <option key={option} value={option}>{option === 'all' ? 'All Theatres' : option}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={salesAnalytics}
+                    dataKey="value"
+                    nameKey="name"
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
                     outerRadius={80}
                     fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, value, percent }) => `(${(percent * 100).toFixed(0)}%)`}
+                    label
                   >
                     {salesAnalytics.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
-                  <Legend layout="vertical" align="right" verticalAlign="middle" />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salesByMovie} layout="vertical" margin={{ left: 100, right: 20, top: 20, bottom: 20 }}>
+                <BarChart data={salesByMovie} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={100} />
+                  <XAxis type="category" dataKey="name" />
+                  <YAxis type="number" />
                   <Tooltip />
-                  <Legend />
                   <Bar dataKey="value" fill="#8884d8" />
                 </BarChart>
               </ResponsiveContainer>
@@ -156,24 +261,110 @@ const AdminDashboard = () => {
         </section>
 
         <section className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Top Users by Bookings</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topUsersByBooking} layout="vertical" margin={{ left: 100, right: 20, top: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Top Users by Booking</h2>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={topUsersByBooking} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        </section>
+
+        <section className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Movie Preferences</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label htmlFor="moviePreferenceFilter" className="block text-sm font-medium text-gray-700 mb-1">Filter by Movie</label>
+              <select
+                id="moviePreferenceFilter"
+                value={selectedMovie}
+                onChange={(e) => setSelectedMovie(e.target.value)}
+                className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {movieOptions.map(option => (
+                  <option key={option} value={option}>{option === 'all' ? 'All Movies' : option}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="theatrePreferenceFilter" className="block text-sm font-medium text-gray-700 mb-1">Filter by Theatre</label>
+              <select
+                id="theatrePreferenceFilter"
+                value={selectedTheatre}
+                onChange={(e) => setSelectedTheatre(e.target.value)}
+                className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {theatreOptions.map(option => (
+                  <option key={option} value={option}>{option === 'all' ? 'All Theatres' : option}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="locationPreferenceFilter" className="block text-sm font-medium text-gray-700 mb-1">Filter by Location</label>
+              <select
+                id="locationPreferenceFilter"
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+                className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {locationOptions.map(option => (
+                  <option key={option} value={option}>{option === 'all' ? 'All Locations' : option}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">First Preference</h3>
+              <ul>
+                {filteredPreferences.firstPreference.map((item, index) => (
+                  <li key={index} className="flex justify-between py-1">
+                    <span>{item.theatreName}</span>
+                    <span>{item.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Second Preference</h3>
+              <ul>
+                {filteredPreferences.secondPreference.map((item, index) => (
+                  <li key={index} className="flex justify-between py-1">
+                    <span>{item.theatreName}</span>
+                    <span>{item.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Third Preference</h3>
+              <ul>
+                {filteredPreferences.thirdPreference.map((item, index) => (
+                  <li key={index} className="flex justify-between py-1">
+                    <span>{item.theatreName}</span>
+                    <span>{item.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
         <section className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Executive Performance</h2>
-          <div className="mb-4">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Executive Details</h2>
+          {selectedExecutive && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Selected Executive: {selectedExecutive}</h3>
+              <p><strong>ID:</strong> {selectedExecutiveData.id || 'N/A'}</p>
+              <p><strong>Name:</strong> {selectedExecutiveData.name || 'N/A'}</p>
+              <p><strong>Assigned Theatre:</strong> {selectedExecutiveData['assigned-theatre'] || 'N/A'}</p>
+              <p><strong>Contact:</strong> {selectedExecutiveData.contact || 'N/A'}</p>
+            </div>
+          )}
+          <div className="mt-4">
             <label htmlFor="executiveFilter" className="block text-sm font-medium text-gray-700 mb-1">Select Executive</label>
             <select
               id="executiveFilter"
@@ -181,63 +372,10 @@ const AdminDashboard = () => {
               onChange={(e) => setSelectedExecutive(e.target.value)}
               className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <option value="all">All Executives</option>
-              {executiveOptions.filter(option => option !== 'all').map(option => (
-                <option key={option} value={option}>{option}</option>
+              {executiveOptions.map(option => (
+                <option key={option} value={option}>{option === 'all' ? 'All Executives' : option}</option>
               ))}
             </select>
-          </div>
-          {selectedExecutive !== 'all' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-100 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">Total Coupons Generated</h3>
-                <p className="text-2xl font-bold">{selectedExecutiveData.coupon_count || 0}</p>
-              </div>
-              <div className="bg-green-100 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">Sold Coupons</h3>
-                <p className="text-2xl font-bold">{selectedExecutiveData.sold_coupons || 0}</p>
-              </div>
-              <div className="bg-red-100 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">Unsold Coupons</h3>
-                <p className="text-2xl font-bold">{selectedExecutiveData.unsold_coupons || 0}</p>
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Ticket Sales List</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Movie</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Theatre</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUserTickets.map(ticket => (
-                  <tr key={ticket.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket['ticket-id']}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {users.find(u => u.id === ticket['user-id'])?.name || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {movies.find(m => m.id === shows.find(s => s.id === ticket['show-id'])?.movieId)?.title || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {theatres.find(t => t.id === ticket['theater-id'])?.['theatre-name'] || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ticket['amount-paid']}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ticket.class}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </section>
       </main>

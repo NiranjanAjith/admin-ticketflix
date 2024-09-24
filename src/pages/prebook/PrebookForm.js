@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Header from "../components/Header";
 import Footer from '../components/Footer';
 import { db } from '../../firebase';
-import { collection, addDoc, doc, getDoc } from 'firebase/firestore'; //  getDocs, query, where,
+import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 function PrebookingForm() {
     const location = useLocation();
@@ -29,9 +29,6 @@ function PrebookingForm() {
     const [locations, setLocations] = useState([]);
     const [seatTypes, setSeatTypes] = useState([]);
     const [amount, setAmount] = useState(null);
-    // const [firstPreferenceCount, setFirstPreferenceCount] = useState({});
-    // const [secondPreferenceCount, setSecondPreferenceCount] = useState({});
-    // const [thirdPreferenceCount, setThirdPreferenceCount] = useState({});
 
     useEffect(() => {
         const fetchMovieAndTheatres = async () => {
@@ -110,23 +107,63 @@ function PrebookingForm() {
     };
 
     const handleSubmit = async (e) => {
-        // ?? const numberOfSeats = parseInt(formData.numberOfSeats, 10);
         e.preventDefault();
         try {
+            // Prepare the prebooking data
             const prebookData = {
                 ...formData,
                 movieId,
                 amount,
                 timestamp: new Date()
             };
+            
+            // Add prebooking data to Firestore
             const prebookCol = collection(db, 'prebook');
             await addDoc(prebookCol, prebookData);
             console.log("Prebooking data written to Firestore");
-            navigate('/payment');
+    
+            // Fetch the current movie document
+            const movieRef = doc(db, 'movies', movieId);
+            const movieSnap = await getDoc(movieRef);
+            if (movieSnap.exists()) {
+                const movieData = movieSnap.data();
+                const updatedPreferences = {};
+    
+                // Helper function to update the preference map
+                const updatePreferenceMap = (preferenceField, theatreId) => {
+                    const currentMap = movieData[preferenceField] || {};
+                    const newCount = (currentMap[theatreId] || 0) + formData.numberOfSeats;
+                    return { ...currentMap, [theatreId]: newCount };
+                };
+    
+                // Update preference maps
+                if (formData.firstPreference) {
+                    updatedPreferences.firstPreference = updatePreferenceMap('firstPreference', formData.firstPreference);
+                }
+                if (formData.secondPreference) {
+                    updatedPreferences.secondPreference = updatePreferenceMap('secondPreference', formData.secondPreference);
+                }
+                if (formData.thirdPreference) {
+                    updatedPreferences.thirdPreference = updatePreferenceMap('thirdPreference', formData.thirdPreference);
+                }
+    
+                // Update the movie document with the new preference maps
+                await updateDoc(movieRef, {
+                    ...updatedPreferences
+                });
+    
+                console.log("Movie document updated with new seat counts");
+    
+                // Navigate to the payment page
+                navigate('/payment');
+            } else {
+                console.error("Movie document not found");
+            }
         } catch (error) {
             console.error("Error writing data to Firestore: ", error);
         }
     };
+    
 
     return (
         <div className="App min-h-screen flex flex-col bg-yellow-50">
