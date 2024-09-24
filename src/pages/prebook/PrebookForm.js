@@ -5,6 +5,11 @@ import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
+function PrebookingForm() {
+    const location = useLocation();
+    const movieId = location.state?.movieId || '';
+    const navigate = useNavigate();
+
 const PrebookingForm = () => {
   const location = useLocation();
   const movieId = location.state?.movieId || '';
@@ -22,6 +27,12 @@ const PrebookingForm = () => {
     executiveCode: '',
     numberOfSeats: 1
   });
+    const [movieData, setMovieData] = useState(null);
+    const [theatres, setTheatres] = useState([]);
+    const [filteredTheatres, setFilteredTheatres] = useState([]);
+    const [locations, setLocations] = useState([]);
+    const [seatTypes, setSeatTypes] = useState([]);
+    const [amount, setAmount] = useState(null);
 
   const [movieData, setMovieData] = useState(null);
   const [theatres, setTheatres] = useState([]);
