@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { firestore } from '../../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+
 
 const AdminDashboard = () => {
   const [userTickets, setUserTickets] = useState([]);
@@ -17,6 +18,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ city: 'all', movie: 'all', theatre: 'all' });
   const [selectedExecutive, setSelectedExecutive] = useState('all');
+  const [prebookedUsers, setPrebookedUsers] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,6 +45,42 @@ const AdminDashboard = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchPrebookedUsers = async () => {
+      if (selectedExecutive === 'all') {
+        setPrebookedUsers([]);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const selectedExec = executives.find(exec => exec.id === selectedExecutive);
+        if (!selectedExec || !selectedExec.executiveCode) {
+          setPrebookedUsers([]);
+          setLoading(false);
+          return;
+        }
+
+        const prebookingsRef = collection(firestore, "prebook");
+        const prebookingsQuery = query(prebookingsRef, where("executiveCode", "==", selectedExec.executiveCode));
+        const prebookingsSnapshot = await getDocs(prebookingsQuery);
+
+        const prebookedUsersList = prebookingsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        setPrebookedUsers(prebookedUsersList);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching prebooked users:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchPrebookedUsers();
+  }, [selectedExecutive, executives]);
 
   const getFilterOptions = (data, field) => {
     const options = ['all', ...new Set(data.map(item => item[field]))];
@@ -88,6 +126,7 @@ const AdminDashboard = () => {
     );
   }
 
+  
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
       <Header />
@@ -204,6 +243,71 @@ const AdminDashboard = () => {
             </div>
           )}
         </section>
+
+        <section className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Executive Prebook Analysis</h2>
+      
+      <div className="mb-4">
+        <label htmlFor="executiveFilter" className="block text-sm font-medium text-gray-700 mb-1">Select Executive</label>
+        <select
+          id="executiveFilter"
+          value={selectedExecutive}
+          onChange={(e) => setSelectedExecutive(e.target.value)}
+          className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+        >
+          <option value="all">All Executives</option>
+          {executives.map(exec => (
+            <option key={exec.id} value={exec.id}>{exec.name || exec.email}</option>
+          ))}
+        </select>
+      </div>
+
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <>
+          <div className="bg-blue-100 p-4 rounded-lg mb-4">
+            <h3 className="font-semibold text-lg mb-2">Prebooked Users Count</h3>
+            <p className="text-2xl font-bold">{prebookedUsers.length}</p>
+          </div>
+
+          {prebookedUsers.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seats</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booked Date</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {prebookedUsers.map(user => (
+                    <tr key={user.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.class}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.numberOfSeats}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rs. {user.amount.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(user.timestamp.seconds * 1000).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500">No prebooked users for the selected executive.</p>
+          )}
+        </>
+      )}
+    </section>
 
         <section className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Ticket Sales List</h2>

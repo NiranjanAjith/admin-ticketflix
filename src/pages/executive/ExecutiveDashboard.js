@@ -10,6 +10,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { jsPDF } from "jspdf";
 import html2canvas from 'html2canvas';
 import { Link } from "react-router-dom";
+import { Receipt, User } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
@@ -22,6 +23,7 @@ const ExecutiveDashboard = () => {
     sold_coupons: 0,
     unsold_coupons: 0
   });
+  const [prebookedUsers, setPrebookedUsers] = useState([]);
   const [filterDate, setFilterDate] = useState(new Date());
   const { user } = useContext(AuthContext);
   const couponRefs = useRef({});
@@ -50,6 +52,13 @@ const ExecutiveDashboard = () => {
         const executiveData = executiveDocSnap.data();
         console.log("Executive data:", executiveData);
 
+        // Ensure that access is allowed for the executive
+        if (!executiveData.allow_executive_access) {
+          setError("You do not have access to view this data.");
+          setLoading(false);
+          return;
+        }
+
         setCouponAnalysis({
           coupon_count: executiveData.coupon_count || 0,
           sold_coupons: executiveData.sold_coupons || 0,
@@ -63,11 +72,22 @@ const ExecutiveDashboard = () => {
           return;
         }
 
+        // Fetching pre-booked users for the executive
+        const prebookingsRef = collection(firestore, "prebook");
+        const prebookingsQuery = query(prebookingsRef, where("executiveCode", "==", executiveData.executiveCode));
+        const prebookingsSnapshot = await getDocs(prebookingsQuery);
+
+        const prebookedUsersList = prebookingsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        setPrebookedUsers(prebookedUsersList);
+
+        // Fetching coupons
         const couponsRef = collection(firestore, "coupons");
         const q = query(couponsRef, where("executiveCode", "==", executiveData.executiveCode));
         const querySnapshot = await getDocs(q);
-
-        console.log("Coupons query result size:", querySnapshot.size);
 
         const couponDetails = querySnapshot.docs.map(doc => {
           const data = doc.data();
@@ -79,9 +99,6 @@ const ExecutiveDashboard = () => {
           };
         });
 
-        console.log("Coupon details:", couponDetails);
-
-        // Group coupons by generated date
         const grouped = couponDetails.reduce((acc, coupon) => {
           const date = coupon.generated_date.toDateString();
           if (!acc[date]) {
@@ -118,7 +135,6 @@ const ExecutiveDashboard = () => {
     const ticketHeight = 75;
     const ticketsPerPage = Math.floor((pageHeight - 2 * margin) / (ticketHeight + spacing));
   
-    // Filter out coupons with non-null sale_date
     const unsoldCoupons = coupons.filter(coupon => !coupon.sale_date);
   
     for (let i = 0; i < unsoldCoupons.length; i++) {
@@ -165,6 +181,20 @@ const ExecutiveDashboard = () => {
   
     return (
       <section className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+          <Receipt className="mr-2" />
+          Generated Coupons
+        </h2>
+        
+        <section className="mb-8">
+            <DatePicker
+              selected={filterDate}
+              onChange={(date) => setFilterDate(date)}
+              className="border rounded-md px-4 py-2"
+              dateFormat="yyyy/MM/dd"
+              maxDate={new Date()}
+            />
+          </section>
         {filteredGroupedCoupons.length > 0 ? (
           filteredGroupedCoupons.map(([date, couponsForDate]) => (
             <div key={date} className="mb-6">
@@ -220,31 +250,55 @@ const ExecutiveDashboard = () => {
     );
   };
 
+  const renderPrebookedUsers = () => {
+    return (
+      <section className="bg-white shadow-md rounded-lg p-6 mb-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+          <User className="mr-2" />
+          Pre-booked Users
+        </h2>
+        {prebookedUsers.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {prebookedUsers.map((user) => (
+              <div key={user.id} className="bg-gray-50 rounded-md p-4 hover:shadow-lg transition-shadow duration-300">
+                <h3 className="font-semibold text-lg text-gray-800 mb-2">{user.name}</h3>
+                <div className="text-sm text-gray-600">
+                  <p><span className="font-medium">Email:</span> {user.email || 'N/A'}</p>
+                  <p><span className="font-medium">Phone:</span> {user.phone}</p>
+                  <p><span className="font-medium">Class:</span> {user.class}</p>
+                  <p><span className="font-medium">Seats:</span> {user.numberOfSeats}</p>
+                  <p><span className="font-medium">Amount:</span> ${user.amount.toFixed(2)}</p>
+                  <p><span className="font-medium">Booked:</span> {new Date(user.timestamp.seconds * 1000).toLocaleString()}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500 text-lg">No pre-booked users available.</p>
+          </div>
+        )}
+      </section>
+    );
+  };
+
   const pieChartData = [
     { name: 'Sold Coupons', value: couponAnalysis.sold_coupons },
     { name: 'Unsold Coupons', value: couponAnalysis.unsold_coupons },
   ];
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-2xl font-semibold text-gray-800">Loading...</div>
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-2xl font-semibold text-yellow-600">{error}</div>
-      </div>
-    );
+    return <div>Error: {error}</div>;
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
+           <main className="flex-grow container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Executive Dashboard</h2>
 
@@ -286,15 +340,9 @@ const ExecutiveDashboard = () => {
             </div>
           </section>
 
-          <section className="mb-8">
-            <DatePicker
-              selected={filterDate}
-              onChange={(date) => setFilterDate(date)}
-              className="border rounded-md px-4 py-2"
-              dateFormat="yyyy/MM/dd"
-              maxDate={new Date()}
-            />
-          </section>
+          {/* Pre-booked Users Section */}
+          {renderPrebookedUsers()}
+
 
           {renderCouponList()}
         </div>
