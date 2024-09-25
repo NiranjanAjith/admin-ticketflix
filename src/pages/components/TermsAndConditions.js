@@ -7,91 +7,91 @@ const TermsAndConditions = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold mb-8 text-center">Terms and Conditions</h1>
-        <div className="space-y-8">
+      <main className="flex-grow container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">Terms and Conditions</h1>
+        <div className="space-y-6">
           <section>
             <h2 className="text-2xl font-semibold mb-2">1. Acceptance of Terms</h2>
-            <p>By accessing or using the TicketFlix app, you acknowledge that you have read, understood, and agree to abide by these Terms and Conditions. If you do not consent to these terms, you should discontinue using our services immediately.</p>
+            <p>By using the TicketFlix app, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our services.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">2. User Accounts</h2>
-            <p>To unlock certain features of the app, you will need to register and create an account. It is your responsibility to protect the confidentiality of your login credentials. Any actions taken using your account are your responsibility.</p>
+            <p>To use certain features of the app, you must create an account. You are responsible for maintaining the confidentiality of your account information and for all activities that occur under your account.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">3. Ticket Booking</h2>
-            <p>Once a ticket is successfully booked, an electronic ticket will be sent to your registered email and must be presented at the theater. Please note that bookings are subject to seat availability, and we will inform you of any issues during the booking process.</p>
+            <p>Once a ticket is successfully booked, you will receive an electronic ticket that must be presented at the theater. Booking is subject to seat availability, and we will notify you of any issues during the booking process.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">4. Pre-Booking of Tickets</h2>
-            <p>Pre-booking tickets for upcoming movies is available, but it does not guarantee specific seat allocation. Seat assignment will depend on availability at the time of the movie release. If your preferred seats are not available, we will notify you, and the pre-booked amount will be credited to your app wallet.</p>
+            <p>Pre-booking is available for upcoming movies. However, it does not guarantee seat allocation. Seats will be allocated based on availability at the time of the movie release or final booking. If seats are unavailable in your preferred theaters, you will be notified, and the pre-booked amount will be refunded to your app wallet.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">5. Payment and Refund Policy</h2>
-            <p>All payments must be completed through the integrated payment gateway. In the event of a failed transaction or cancellation, refunds will be credited to your app wallet within 5-7 business days. Direct refunds to bank accounts or credit cards are not supported.</p>
+            <p>All payments must be made through the integrated payment gateway. In case of failed payments or cancellations, refunds will be processed to your app wallet within 5-7 business days. We do not support direct refunds to bank accounts or credit cards.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">6. Coupons and Discounts</h2>
-            <p>TicketFlix provides promotional coupons, which can be redeemed at the time of booking. Once applied, these coupons cannot be transferred or reused. In cases of fraudulent usage, we reserve the right to revoke or cancel the coupon.</p>
+            <p>Coupons provided by TicketFlix can be redeemed during payment. Once redeemed, coupons are non-transferable and cannot be reused. We reserve the right to revoke or cancel any coupon in case of misuse or fraudulent activity.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">7. Cancellation Policy</h2>
-            <p>You may cancel your booking within the allowed cancellation window, subject to theater-specific policies. Refunds for canceled tickets will be credited only to your app wallet.</p>
+            <p>You may cancel bookings within the cancellation window, subject to theater policies. Refunds for cancellations will be issued to your app wallet only.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">8. User Responsibilities</h2>
-            <p>As a user, you must ensure that the contact information provided during the booking process is accurate. TicketFlix is not liable for any issues resulting from incorrect contact details or miscommunication.</p>
+            <p>You must ensure that the contact details provided during booking or pre-booking are accurate. We are not responsible for issues arising from incorrect contact information or miscommunication.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">9. App Wallet Usage</h2>
-            <p>The app wallet allows you to store refunds and credit balances, which can be used for future bookings. However, the balance cannot be withdrawn or transferred to external accounts. Ensure you manage your wallet securely.</p>
+            <p>The app wallet is a secure virtual wallet within TicketFlix where refunds and credit balances are stored. Wallet balance can only be used for bookings or purchases within the app and cannot be withdrawn or transferred to external accounts.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">10. Theater and Movie Availability</h2>
-            <p>Showtimes, seat availability, and theater listings may change without notice due to third-party control. TicketFlix is not responsible for any cancellations or modifications by theaters or distributors, but we will notify you promptly of any significant changes.</p>
+            <p>Movie schedules, theater availability, and seat allocations are subject to change. TicketFlix is not liable for any changes or cancellations made by theaters or distributors. We will notify you of any changes in theater allocation or movie schedules.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">11. Intellectual Property</h2>
-            <p>All materials on the TicketFlix platform, including text, images, logos, and other content, are owned by TicketFlix and are protected by copyright, trademark, and other intellectual property laws. Unauthorized use is prohibited.</p>
+            <p>All content and materials available on TicketFlix, including but not limited to text, graphics, website name, code, images and logos are the intellectual property of TicketFlix and are protected by applicable copyright and trademark law.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">12. Limitation of Liability</h2>
-            <p>TicketFlix disclaims liability for theater-related issues, including but not limited to show cancellations, technical failures, or seat disputes. Our responsibility is limited to the amount paid through the app for the ticket in question.</p>
+            <p>TicketFlix is not responsible for any issues arising from theater operations, including but not limited to show cancellations, technical errors, or disputes regarding seating arrangements. Our liability is limited to the amount paid for the ticket through our app.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">13. Modifications to the Service</h2>
-            <p>TicketFlix reserves the right to modify or discontinue any part of the service temporarily or permanently without prior notice. We are not liable for any disruption to services caused by such modifications or discontinuation.</p>
+            <p>We reserve the right to modify or discontinue, temporarily or permanently, the service with or without notice. You agree that we will not be liable to you or to any third party for any modification, suspension or discontinuance of the service.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">14. Governing Law</h2>
-            <p>These Terms and Conditions shall be governed in accordance with the laws of India. In the event of disputes or claims, Indian courts will have jurisdiction over such matters.</p>
+            <p>These Terms shall be governed and construed in accordance with the laws of [Your Country/State], without regard to its conflict of law provisions.</p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-2">15. Changes to Terms</h2>
-            <p>We may update these Terms and Conditions from time to time. Any changes will be posted on this page, and your continued use of the TicketFlix app following these changes will constitute your acceptance of the revised terms.</p>
+            <p>We reserve the right to update or change these terms and conditions at any time without prior notice. Your continued use of the service after we post any modifications to the Terms on this page will constitute your acknowledgment of the modifications and your consent to abide and be bound by the modified Terms.</p>
           </section>
 
-          
+          <section>
+            <h2 className="text-2xl font-semibold mb-2">16. Contact Us</h2>
+            <p>If you have any questions about these Terms, please contact us at [Your Contact Information].</p>
+          </section>
         </div>
-
-        <div className="mt-12 text-center">
-          <Link to="/" className="text-blue-500 hover:text-blue-700 underline">
-            Back to Home
-          </Link>
+        <div className="mt-8">
+          <Link to="/" className="text-blue-600 hover:text-blue-800">Back to Home</Link>
         </div>
       </main>
       <Footer />

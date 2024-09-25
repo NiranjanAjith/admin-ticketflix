@@ -90,6 +90,17 @@ const AddTransactionPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
   
+    // Validate phone number and name
+    if (!/^\d{10}$/.test(formData.phone)) {
+      console.error('Phone number must be exactly 10 digits.');
+      return;
+    }
+
+    if (!/^[a-zA-Z\s]+$/.test(formData.name)) {
+      console.error('Name must only contain letters.');
+      return;
+    }
+
     if (formData['transaction-id'].length !== 5 || !/^\d+$/.test(formData['transaction-id'])) {
       console.error('Transaction ID must be exactly 5 digits.');
       return;
@@ -97,12 +108,11 @@ const AddTransactionPage = () => {
   
     try {
       await runTransaction(db, async (transaction) => {
-        // Perform all reads first
         const selectedCoupon = unsoldCoupons.find(coupon => coupon.coupon_code === formData['coupon-code']);
         if (!selectedCoupon) {
           throw new Error('Selected coupon not found.');
         }
-  
+
         const couponRef = doc(db, 'coupons', selectedCoupon.id);
         const couponDoc = await transaction.get(couponRef);
         
@@ -127,7 +137,6 @@ const AddTransactionPage = () => {
         }
         const executiveData = executiveDocSnap.data();
   
-        // After all reads, perform writes
         const saleDate = new Date();
         transaction.update(couponRef, { sale_date: saleDate });
   
@@ -157,9 +166,7 @@ const AddTransactionPage = () => {
       }));
       await fetchUnsoldCoupons(formData['executive-id']);
       
-      // Show success message
       setShowSuccessMessage(true);
-      // Hide the message after 5 seconds
       setTimeout(() => setShowSuccessMessage(false), 5000);
     } catch (error) {
       console.error('Error submitting transaction:', error);
@@ -232,7 +239,7 @@ const AddTransactionPage = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name (as per payer)</label>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name (as per payee)</label>
                   <input
                     type="text"
                     name="name"
@@ -240,6 +247,7 @@ const AddTransactionPage = () => {
                     value={formData.name}
                     onChange={handleChange}
                     required
+                    pattern="[a-zA-Z\s]+"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
                 </div>
@@ -252,6 +260,7 @@ const AddTransactionPage = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     required
+                    pattern="\d{10}"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
                 </div>

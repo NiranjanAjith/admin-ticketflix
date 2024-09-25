@@ -22,9 +22,55 @@ const ExecutiveSignup = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // Helper functions for validations
+  const validateEmail = (email) => {
+    // Refined email regex to prevent numbers in domain and ensure proper email format
+    const emailRegex = /^[^\s@]+@[a-zA-Z]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhoneNumber = (phoneNumber) => {
+    // Validate that phone number contains only digits and is 10 characters long
+    const phoneRegex = /^[0-9]{10}$/;
+    return phoneRegex.test(phoneNumber);
+  };
+
+  const validatePassword = (password) => {
+    // Minimum 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+  };
+
+  const validateName = (name) => {
+    // Ensure name contains only letters and spaces
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    return nameRegex.test(name);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    // Validate all fields
+    if (!validateName(name)) {
+      setError("Please enter a valid name (letters and spaces only)");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address (e.g., example@domain.com)");
+      return;
+    }
+
+    if (!validatePhoneNumber(phoneNumber)) {
+      setError("Please enter a valid phone number (10 digits)");
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setError("Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a number, and a special character");
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -32,7 +78,6 @@ const ExecutiveSignup = () => {
     }
 
     try {
-      // const userCredential =
       await createUserWithEmailAndPassword(auth, email, password);
       const executiveCode = generateExecutiveCode(name, phoneNumber);
       await setDoc(doc(firestore, 'executives', email), {
