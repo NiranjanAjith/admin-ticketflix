@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import LandingPageHeader from '../components/LandingPageHeader';
+import LandingPageFooter from '../components/LandingPageFooter';
 
 const PaymentStatus = () => {
   const [status, setStatus] = useState('loading');
@@ -128,13 +128,13 @@ const PaymentStatus = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-yellow-100 to-yellow-300">
-      <Header />
+      <LandingPageHeader />
       <main className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
         <div className="w-full max-w-md bg-white shadow-2xl rounded-lg px-8 pt-6 pb-8 mb-4">
           {renderContent()}
         </div>
       </main>
-      <Footer />
+      <LandingPageFooter />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { verifyAndGetTicket } from "../utils/verifyTicket";
+import { verifyAndGetTicket } from "../components/verifyTicket";
 
 const ViewTicket = () => {
   const [documentData, setDocumentData] = useState(null);

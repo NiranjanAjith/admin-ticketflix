@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Header from './Header';
-import Footer from './Footer';
+import LandingPageHeader from './LandingPageHeader';
+import LandingPageFooter from './LandingPageFooter';
 
 const TermsAndConditions = () => {
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <LandingPageHeader />
       <main className="flex-grow container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Terms and Conditions</h1>
         <div className="space-y-6">
@@ -94,7 +94,7 @@ const TermsAndConditions = () => {
           <Link to="/" className="text-blue-600 hover:text-blue-800">Back to Home</Link>
         </div>
       </main>
-      <Footer />
+      <LandingPageFooter />
     </div>
   );
 };

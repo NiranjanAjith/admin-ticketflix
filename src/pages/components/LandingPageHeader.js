@@ -2,7 +2,7 @@ import React from "react";
 import { FaTicketAlt } from "react-icons/fa";
 import logo from "../../assets/logo.png";
 
-const Header = () => (
+const LandingPageHeader = () => (
   <header className="bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-200 py-2 px-4 shadow-md relative overflow-hidden">
     <div className="absolute inset-0 bg-yellow-100 opacity-50 animate-pulse"></div>
     <div className="container mx-auto flex items-center justify-between relative z-10">
@@ -24,4 +24,4 @@ const Header = () => (
   </header>
 );
 
-export default Header;
+export default LandingPageHeader;
