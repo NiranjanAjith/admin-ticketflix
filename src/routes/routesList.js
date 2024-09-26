@@ -14,7 +14,6 @@ import ExecutiveSignup from "../pages/auth/ExecutiveSignup";
 import ExecutiveDashboard from "../pages/executive/ExecutiveDashboard";
 import CouponGeneration from "../pages/executive/CouponGenerationPage";
 import TransactionForm from "../pages/executive/AddTransactionPage";
-import Checkout from "../pages/prebook/Checkout";
 import PaymentStatus from "../pages/prebook/PaymentStatus";
 
 import routes from "./constants";
@@ -208,7 +207,6 @@ const HomeRoutes = () => {
       <PaymentGateway />
     }
   />,
-  <Route path="/checkout" element={<Checkout />} />,
   <Route path="/payment-status" element={<PaymentStatus />} />,
   <Route
     path={routes.SUCCESS}
