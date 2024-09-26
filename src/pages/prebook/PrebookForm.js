@@ -6,11 +6,6 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 function PrebookingForm() {
-    const location = useLocation();
-    const movieId = location.state?.movieId || '';
-    const navigate = useNavigate();
-
-const PrebookingForm = () => {
   const location = useLocation();
   const movieId = location.state?.movieId || '';
   const navigate = useNavigate();
@@ -27,13 +22,6 @@ const PrebookingForm = () => {
     executiveCode: '',
     numberOfSeats: 1
   });
-    const [movieData, setMovieData] = useState(null);
-    const [theatres, setTheatres] = useState([]);
-    const [filteredTheatres, setFilteredTheatres] = useState([]);
-    const [locations, setLocations] = useState([]);
-    const [seatTypes, setSeatTypes] = useState([]);
-    const [amount, setAmount] = useState(null);
-
   const [movieData, setMovieData] = useState(null);
   const [theatres, setTheatres] = useState([]);
   const [filteredTheatres, setFilteredTheatres] = useState([]);
@@ -51,7 +39,7 @@ const PrebookingForm = () => {
         if (movieSnap.exists()) {
           const movie = movieSnap.data();
           setMovieData(movie);
-          setSeatTypes(Object.keys(movie.prebookPrice || {}));
+          setSeatTypes(Object.entries(movie.prebookPrice || {}));
 
           const theatrePromises = movie.theatreIds.map(id => getDoc(doc(db, 'theatres', id)));
           const theatreSnapshots = await Promise.all(theatrePromises);
@@ -174,62 +162,65 @@ const PrebookingForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      try {
-        const prebookData = {
-          ...formData,
-          movieId,
-          amount,
-          timestamp: new Date()
+    try {
+      const prebookData = {
+        ...formData,
+        movieId,
+        amount,
+        timestamp: new Date()
+      };
+
+      const prebookCol = collection(db, 'prebook');
+      const docRef = await addDoc(prebookCol, prebookData);
+      console.log("Prebooking data written to Firestore");
+
+      const movieRef = doc(db, 'movies', movieId);
+      const movieSnap = await getDoc(movieRef);
+      if (movieSnap.exists()) {
+        const movieData = movieSnap.data();
+        const updatedPreferences = {};
+
+        const updatePreferenceMap = (preferenceField, theatreId) => {
+          const currentMap = movieData[preferenceField] || {};
+          const newCount = (currentMap[theatreId] || 0) + formData.numberOfSeats;
+          return { ...currentMap, [theatreId]: newCount };
         };
 
-        const prebookCol = collection(db, 'prebook');
-        const docRef = await addDoc(prebookCol, prebookData);
-        console.log("Prebooking data written to Firestore");
-
-        const movieRef = doc(db, 'movies', movieId);
-        const movieSnap = await getDoc(movieRef);
-        if (movieSnap.exists()) {
-          const movieData = movieSnap.data();
-          const updatedPreferences = {};
-
-          const updatePreferenceMap = (preferenceField, theatreId) => {
-            const currentMap = movieData[preferenceField] || {};
-            const newCount = (currentMap[theatreId] || 0) + formData.numberOfSeats;
-            return { ...currentMap, [theatreId]: newCount };
-          };
-
-          if (formData.firstPreference) {
-            updatedPreferences.firstPreference = updatePreferenceMap('firstPreference', formData.firstPreference);
-          }
-          if (formData.secondPreference) {
-            updatedPreferences.secondPreference = updatePreferenceMap('secondPreference', formData.secondPreference);
-          }
-          if (formData.thirdPreference) {
-            updatedPreferences.thirdPreference = updatePreferenceMap('thirdPreference', formData.thirdPreference);
-          }
-          
-
-          await updateDoc(movieRef, {
-            ...updatedPreferences
-          });
-
-          console.log("Movie document updated with new seat counts");
-
-          navigate('/checkout', {
-            state: {
-              prebookingId: docRef.id,
-              movieName: movieData.title,
-              ...prebookData
-            }
-          });
-        } else {
-          console.error("Movie document not found");
+        if (formData.firstPreference) {
+          updatedPreferences.firstPreference = updatePreferenceMap('firstPreference', formData.firstPreference);
         }
-      } catch (error) {
-        console.error("Error writing data to Firestore: ", error);
+        if (formData.secondPreference) {
+          updatedPreferences.secondPreference = updatePreferenceMap('secondPreference', formData.secondPreference);
+        }
+        if (formData.thirdPreference) {
+          updatedPreferences.thirdPreference = updatePreferenceMap('thirdPreference', formData.thirdPreference);
+        }
+
+        await updateDoc(movieRef, {
+          ...updatedPreferences
+        });
+
+        console.log("Movie document updated with new seat counts");
+
+        navigate('/payment', {
+          state: {
+            amount: amount,
+            mobileNumber: formData.phone,
+            email: formData.email,
+            name: formData.name,
+            prebookingId: docRef.id,
+            movieName: movieData.title,
+            numberOfSeats: formData.numberOfSeats,
+            class: formData.class,
+            firstPreference: formData.firstPreference,
+            secondPreference: formData.secondPreference,
+            thirdPreference: formData.thirdPreference
+          }
+        });
+      } else {
+        console.error("Movie document not found");
       }
-    } else {
+    } catch {
       console.log("Form has errors. Please correct them.");
     }
   };
@@ -353,10 +344,10 @@ const PrebookingForm = () => {
                 className={`mt-1 block w-full border ${errors.class ? 'border-red-500' : 'border-gray-300'} bg-white py-2 px-3 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
                 required
               >
-                <option value="">Select Class</option>
-                {seatTypes.map(type => (
-                  <option key={type} value={type}>
-                    {type} ({movieData?.prebookPrice?.[type]} per seat)
+                <option value="">Class</option>
+                {seatTypes.map(([seatType, price]) => (
+                  <option key={seatType} value={seatType}>
+                    {seatType} - ₹{price}
                   </option>
                 ))}
               </select>
@@ -393,24 +384,6 @@ const PrebookingForm = () => {
               />
             </div>
 
-            {/* Terms and Conditions */}
-            <div className="relative flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="agreedToTerms"
-                  name="agreedToTerms"
-                  type="checkbox"
-                  onChange={handleChange}
-                  checked={agreedToTerms}
-                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                  required
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="agreedToTerms" className="font-medium text-gray-700">I agree to the <Link to="/terms" className="text-blue-600 hover:text-blue-500">Terms and Conditions</Link>*</label>
-              </div>
-            </div>
-
             {/* Error Summary */}
             {Object.keys(errors).length > 0 && (
               <div className="text-red-500 text-xs mt-2">
@@ -418,28 +391,44 @@ const PrebookingForm = () => {
               </div>
             )}
 
-            {/* Submit Button */}
-            <div className="relative">
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-500 transition-colors"
-              >
-                Prebook Now
-              </button>
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="agreeTerms"
+                name="agreeTerms"
+                checked={agreedToTerms}
+                onChange={handleChange}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                required
+              />
+              <label htmlFor="agreeTerms" className="ml-2 block text-sm text-gray-900">
+                By paying you agree to TicketFlix's{' '}
+                <Link to="/terms-and-conditions" className="text-blue-600 hover:underline">
+                  terms and conditions
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy-policy" className="text-blue-600 hover:underline">
+                  privacy policy
+                </Link>
+              </label>
             </div>
 
-            {/* Amount Display */}
-            {amount !== null && (
-              <div className="text-center mt-4 text-lg font-semibold">
-                Total Amount: ₹{amount}
-              </div>
-            )}
+            <button
+              type="submit"
+              className={`w-full py-3 px-4 font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition-colors ${agreedToTerms
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                }`}
+              disabled={!agreedToTerms}
+            >
+              {agreedToTerms ? `Proceed to Pay ${amount ? `₹${amount}` : ''}` : 'Please agree to terms to proceed'}
+            </button>
           </form>
         </div>
       </main>
       <Footer />
     </div>
   );
-};
+}
 
 export default PrebookingForm;
